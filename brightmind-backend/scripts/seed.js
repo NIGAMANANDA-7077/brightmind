@@ -6,6 +6,7 @@ const Question = require('../models/Question');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const Enrollment = require('../models/Enrollment');
+const LiveClass = require('../models/LiveClass');
 const sequelize = require('../config/db');
 
 const seedData = async () => {
@@ -174,7 +175,6 @@ const seedData = async () => {
         ]);
         console.log(`✅ Seeded ${notifications.length} notifications`);
 
-        const LiveClass = require('../models/LiveClass');
         const liveClass = await LiveClass.create({
             title: "Live Q&A: Architecture Patterns",
             course: courses[0].title,

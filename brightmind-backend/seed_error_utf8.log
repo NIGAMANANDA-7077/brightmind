@@ -1,0 +1,340 @@
+﻿
+> brightmind-backend@1.0.0 db:seed
+> node scripts/seed.js
+
+--- DB Connection Debug ---
+DB Name: railway
+DB User: root
+DB Host: gondola.proxy.rlwy.net
+DB Port: 17638
+---------------------------
+Connecting to database...
+Executing (default): SELECT 1+1 AS result
+Executing (default): DROP TABLE IF EXISTS `Enrollments`;
+Executing (default): DROP TABLE IF EXISTS `Notifications`;
+Executing (default): DROP TABLE IF EXISTS `Users`;
+Executing (default): DROP TABLE IF EXISTS `Questions`;
+Executing (default): DROP TABLE IF EXISTS `Exams`;
+Executing (default): DROP TABLE IF EXISTS `Announcements`;
+Executing (default): DROP TABLE IF EXISTS `Assignments`;
+Executing (default): DROP TABLE IF EXISTS `Courses`;
+Executing (default): SELECT CONSTRAINT_NAME as constraint_name,CONSTRAINT_NAME as constraintName,CONSTRAINT_SCHEMA as constraintSchema,CONSTRAINT_SCHEMA as constraintCatalog,TABLE_NAME as tableName,TABLE_SCHEMA as tableSchema,TABLE_SCHEMA as tableCatalog,COLUMN_NAME as columnName,REFERENCED_TABLE_SCHEMA as referencedTableSchema,REFERENCED_TABLE_SCHEMA as referencedTableCatalog,REFERENCED_TABLE_NAME as referencedTableName,REFERENCED_COLUMN_NAME as referencedColumnName FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE where TABLE_NAME = 'Courses' AND CONSTRAINT_NAME!='PRIMARY' AND CONSTRAINT_SCHEMA='railway' AND REFERENCED_TABLE_NAME IS NOT NULL;
+Executing (default): SELECT CONSTRAINT_NAME as constraint_name,CONSTRAINT_NAME as constraintName,CONSTRAINT_SCHEMA as constraintSchema,CONSTRAINT_SCHEMA as constraintCatalog,TABLE_NAME as tableName,TABLE_SCHEMA as tableSchema,TABLE_SCHEMA as tableCatalog,COLUMN_NAME as columnName,REFERENCED_TABLE_SCHEMA as referencedTableSchema,REFERENCED_TABLE_SCHEMA as referencedTableCatalog,REFERENCED_TABLE_NAME as referencedTableName,REFERENCED_COLUMN_NAME as referencedColumnName FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE where TABLE_NAME = 'Assignments' AND CONSTRAINT_NAME!='PRIMARY' AND CONSTRAINT_SCHEMA='railway' AND REFERENCED_TABLE_NAME IS NOT NULL;
+Executing (default): SELECT CONSTRAINT_NAME as constraint_name,CONSTRAINT_NAME as constraintName,CONSTRAINT_SCHEMA as constraintSchema,CONSTRAINT_SCHEMA as constraintCatalog,TABLE_NAME as tableName,TABLE_SCHEMA as tableSchema,TABLE_SCHEMA as tableCatalog,COLUMN_NAME as columnName,REFERENCED_TABLE_SCHEMA as referencedTableSchema,REFERENCED_TABLE_SCHEMA as referencedTableCatalog,REFERENCED_TABLE_NAME as referencedTableName,REFERENCED_COLUMN_NAME as referencedColumnName FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE where TABLE_NAME = 'Announcements' AND CONSTRAINT_NAME!='PRIMARY' AND CONSTRAINT_SCHEMA='railway' AND REFERENCED_TABLE_NAME IS NOT NULL;
+Executing (default): SELECT CONSTRAINT_NAME as constraint_name,CONSTRAINT_NAME as constraintName,CONSTRAINT_SCHEMA as constraintSchema,CONSTRAINT_SCHEMA as constraintCatalog,TABLE_NAME as tableName,TABLE_SCHEMA as tableSchema,TABLE_SCHEMA as tableCatalog,COLUMN_NAME as columnName,REFERENCED_TABLE_SCHEMA as referencedTableSchema,REFERENCED_TABLE_SCHEMA as referencedTableCatalog,REFERENCED_TABLE_NAME as referencedTableName,REFERENCED_COLUMN_NAME as referencedColumnName FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE where TABLE_NAME = 'Exams' AND CONSTRAINT_NAME!='PRIMARY' AND CONSTRAINT_SCHEMA='railway' AND REFERENCED_TABLE_NAME IS NOT NULL;
+Executing (default): SELECT CONSTRAINT_NAME as constraint_name,CONSTRAINT_NAME as constraintName,CONSTRAINT_SCHEMA as constraintSchema,CONSTRAINT_SCHEMA as constraintCatalog,TABLE_NAME as tableName,TABLE_SCHEMA as tableSchema,TABLE_SCHEMA as tableCatalog,COLUMN_NAME as columnName,REFERENCED_TABLE_SCHEMA as referencedTableSchema,REFERENCED_TABLE_SCHEMA as referencedTableCatalog,REFERENCED_TABLE_NAME as referencedTableName,REFERENCED_COLUMN_NAME as referencedColumnName FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE where TABLE_NAME = 'Questions' AND CONSTRAINT_NAME!='PRIMARY' AND CONSTRAINT_SCHEMA='railway' AND REFERENCED_TABLE_NAME IS NOT NULL;
+Executing (default): SELECT CONSTRAINT_NAME as constraint_name,CONSTRAINT_NAME as constraintName,CONSTRAINT_SCHEMA as constraintSchema,CONSTRAINT_SCHEMA as constraintCatalog,TABLE_NAME as tableName,TABLE_SCHEMA as tableSchema,TABLE_SCHEMA as tableCatalog,COLUMN_NAME as columnName,REFERENCED_TABLE_SCHEMA as referencedTableSchema,REFERENCED_TABLE_SCHEMA as referencedTableCatalog,REFERENCED_TABLE_NAME as referencedTableName,REFERENCED_COLUMN_NAME as referencedColumnName FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE where TABLE_NAME = 'Users' AND CONSTRAINT_NAME!='PRIMARY' AND CONSTRAINT_SCHEMA='railway' AND REFERENCED_TABLE_NAME IS NOT NULL;
+Executing (default): SELECT CONSTRAINT_NAME as constraint_name,CONSTRAINT_NAME as constraintName,CONSTRAINT_SCHEMA as constraintSchema,CONSTRAINT_SCHEMA as constraintCatalog,TABLE_NAME as tableName,TABLE_SCHEMA as tableSchema,TABLE_SCHEMA as tableCatalog,COLUMN_NAME as columnName,REFERENCED_TABLE_SCHEMA as referencedTableSchema,REFERENCED_TABLE_SCHEMA as referencedTableCatalog,REFERENCED_TABLE_NAME as referencedTableName,REFERENCED_COLUMN_NAME as referencedColumnName FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE where TABLE_NAME = 'Notifications' AND CONSTRAINT_NAME!='PRIMARY' AND CONSTRAINT_SCHEMA='railway' AND REFERENCED_TABLE_NAME IS NOT NULL;
+Executing (default): SELECT CONSTRAINT_NAME as constraint_name,CONSTRAINT_NAME as constraintName,CONSTRAINT_SCHEMA as constraintSchema,CONSTRAINT_SCHEMA as constraintCatalog,TABLE_NAME as tableName,TABLE_SCHEMA as tableSchema,TABLE_SCHEMA as tableCatalog,COLUMN_NAME as columnName,REFERENCED_TABLE_SCHEMA as referencedTableSchema,REFERENCED_TABLE_SCHEMA as referencedTableCatalog,REFERENCED_TABLE_NAME as referencedTableName,REFERENCED_COLUMN_NAME as referencedColumnName FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE where TABLE_NAME = 'Enrollments' AND CONSTRAINT_NAME!='PRIMARY' AND CONSTRAINT_SCHEMA='railway' AND REFERENCED_TABLE_NAME IS NOT NULL;
+Executing (default): DROP TABLE IF EXISTS `Courses`;
+Executing (default): DROP TABLE IF EXISTS `Assignments`;
+Executing (default): DROP TABLE IF EXISTS `Announcements`;
+Executing (default): DROP TABLE IF EXISTS `Exams`;
+Executing (default): DROP TABLE IF EXISTS `Questions`;
+Executing (default): DROP TABLE IF EXISTS `Users`;
+Executing (default): DROP TABLE IF EXISTS `Notifications`;
+Executing (default): DROP TABLE IF EXISTS `Enrollments`;
+Executing (default): DROP TABLE IF EXISTS `Courses`;
+Executing (default): CREATE TABLE IF NOT EXISTS `Courses` (`id` CHAR(36) BINARY , `title` VARCHAR(255) NOT NULL, `subject` VARCHAR(255) NOT NULL, `description` TEXT, `status` ENUM('Active', 'Draft', 'Archived') DEFAULT 'Active', `teacherId` VARCHAR(255), `thumbnail` VARCHAR(255), `modules` JSON, `materials` JSON, `studentsEnrolled` INTEGER DEFAULT 0, `youtubeUrl` VARCHAR(255), `createdBy` CHAR(36) BINARY, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB;
+Executing (default): SHOW INDEX FROM `Courses`
+Executing (default): DROP TABLE IF EXISTS `Assignments`;
+Executing (default): CREATE TABLE IF NOT EXISTS `Assignments` (`id` CHAR(36) BINARY , `title` VARCHAR(255) NOT NULL, `courseId` VARCHAR(255) NOT NULL, `courseName` VARCHAR(255), `deadline` DATE NOT NULL, `totalMarks` INTEGER NOT NULL, `status` VARCHAR(255) DEFAULT 'Pending', `submission` JSON, `type` VARCHAR(255) DEFAULT 'File', `questions` JSON, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB;
+Executing (default): SHOW INDEX FROM `Assignments`
+Executing (default): DROP TABLE IF EXISTS `Announcements`;
+Executing (default): CREATE TABLE IF NOT EXISTS `Announcements` (`id` CHAR(36) BINARY , `title` VARCHAR(255) NOT NULL, `message` TEXT NOT NULL, `audience` ENUM('All', 'Students', 'Teachers') DEFAULT 'All', `status` ENUM('Published', 'Draft', 'Scheduled') DEFAULT 'Published', `date` DATE, `postedBy` VARCHAR(255), `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB;
+Executing (default): SHOW INDEX FROM `Announcements`
+Executing (default): DROP TABLE IF EXISTS `Exams`;
+Executing (default): CREATE TABLE IF NOT EXISTS `Exams` (`id` CHAR(36) BINARY , `title` VARCHAR(255) NOT NULL, `courseId` VARCHAR(255) NOT NULL, `courseName` VARCHAR(255), `teacherName` VARCHAR(255) DEFAULT 'Teacher', `questions` JSON NOT NULL, `totalMarks` INTEGER DEFAULT 100, `duration` INTEGER DEFAULT 60, `status` ENUM('Draft', 'Pending Approval', 'Approved', 'Active', 'Completed') DEFAULT 'Draft', `sections` JSON, `versions` JSON, `lastSaved` DATETIME, `reviewedBy` VARCHAR(255), `reviewNotes` TEXT, `scheduledAt` DATETIME, `expiresAt` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB;
+Executing (default): SHOW INDEX FROM `Exams`
+Executing (default): DROP TABLE IF EXISTS `Questions`;
+Executing (default): CREATE TABLE IF NOT EXISTS `Questions` (`id` CHAR(36) BINARY , `text` TEXT NOT NULL, `type` ENUM('Multiple Choice', 'True/False', 'Subjective') DEFAULT 'Multiple Choice', `topic` VARCHAR(255) NOT NULL, `difficulty` ENUM('Easy', 'Medium', 'Hard') DEFAULT 'Medium', `options` JSON, `correctAnswer` TEXT, `marks` INTEGER DEFAULT 1, `lastEdited` VARCHAR(255) DEFAULT 'Just now', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB;
+Executing (default): SHOW INDEX FROM `Questions`
+Executing (default): DROP TABLE IF EXISTS `Users`;
+Executing (default): CREATE TABLE IF NOT EXISTS `Users` (`id` CHAR(36) BINARY , `name` VARCHAR(255) NOT NULL, `email` VARCHAR(255) NOT NULL UNIQUE, `password` VARCHAR(255) NOT NULL, `role` ENUM('Admin', 'Teacher', 'Student') DEFAULT 'Student', `avatar` VARCHAR(255) DEFAULT 'https://ui-avatars.com/api/?name=User&background=random', `phone` VARCHAR(255), `bio` TEXT, `qualification` VARCHAR(255), `experience` VARCHAR(255), `department` VARCHAR(255), `subject` VARCHAR(255), `batch` VARCHAR(255), `status` ENUM('Active', 'Inactive', 'Suspended') DEFAULT 'Active', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB;
+Executing (default): SHOW INDEX FROM `Users`
+Executing (default): DROP TABLE IF EXISTS `Notifications`;
+Executing (default): CREATE TABLE IF NOT EXISTS `Notifications` (`id` CHAR(36) BINARY , `title` VARCHAR(255) NOT NULL, `message` TEXT NOT NULL, `type` ENUM('info', 'success', 'warning', 'error') DEFAULT 'info', `role` ENUM('Admin', 'Teacher', 'Student', 'All') DEFAULT 'All', `read` TINYINT(1) DEFAULT false, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB;
+Executing (default): SHOW INDEX FROM `Notifications`
+Executing (default): DROP TABLE IF EXISTS `Enrollments`;
+Executing (default): CREATE TABLE IF NOT EXISTS `Enrollments` (`id` CHAR(36) BINARY , `studentId` CHAR(36) BINARY NOT NULL, `courseId` CHAR(36) BINARY NOT NULL, `status` ENUM('Active', 'Completed', 'Dropped') DEFAULT 'Active', `progressPercentage` INTEGER DEFAULT 0, `enrolledAt` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB;
+Executing (default): SHOW INDEX FROM `Enrollments`
+Executing (default): ALTER TABLE `Enrollments` ADD UNIQUE INDEX `enrollments_student_id_course_id` (`studentId`, `courseId`)
+Database synced and reset!
+Executing (default): INSERT INTO `Users` (`id`,`name`,`email`,`password`,`role`,`avatar`,`status`,`createdAt`,`updatedAt`) VALUES (?,?,?,?,?,?,?,?,?);
+Executing (default): INSERT INTO `Users` (`id`,`name`,`email`,`password`,`role`,`avatar`,`status`,`createdAt`,`updatedAt`) VALUES (?,?,?,?,?,?,?,?,?);
+Executing (default): INSERT INTO `Users` (`id`,`name`,`email`,`password`,`role`,`avatar`,`status`,`createdAt`,`updatedAt`) VALUES (?,?,?,?,?,?,?,?,?);
+Executing (default): INSERT INTO `Users` (`id`,`name`,`email`,`password`,`role`,`avatar`,`status`,`createdAt`,`updatedAt`) VALUES (?,?,?,?,?,?,?,?,?);
+Executing (default): INSERT INTO `Users` (`id`,`name`,`email`,`password`,`role`,`avatar`,`status`,`createdAt`,`updatedAt`) VALUES (?,?,?,?,?,?,?,?,?);
+Executing (default): INSERT INTO `Users` (`id`,`name`,`email`,`password`,`role`,`avatar`,`status`,`createdAt`,`updatedAt`) VALUES (?,?,?,?,?,?,?,?,?);
+Γ£à Seeded 6 users
+Executing (default): INSERT INTO `Courses` (`id`,`title`,`subject`,`description`,`status`,`teacherId`,`thumbnail`,`modules`,`materials`,`studentsEnrolled`,`createdAt`,`updatedAt`) VALUES ('86442a17-d4c5-4ad5-9514-ba97b2221991','Advanced Full Stack Development','Web Development','Master comprehensive development techniques from architecture to deployment.','Active','9917d5e7-9974-4888-a822-e19187d4c87b','https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=500&q=80','[{\"id\":\"m1\",\"title\":\"Getting Started\",\"duration\":\"2 hours\",\"lessons\":[{\"id\":\"l1\",\"title\":\"Introduction\",\"type\":\"video\",\"duration\":\"15:00\",\"isCompleted\":true},{\"id\":\"l2\",\"title\":\"Environment Setup\",\"type\":\"reading\",\"duration\":\"10:00\",\"isCompleted\":false}]}]','[]',1,'2026-03-07 05:23:45','2026-03-07 05:23:45');
+Γ£à Seeded 1 courses
+Executing (default): INSERT INTO `Assignments` (`id`,`title`,`courseId`,`courseName`,`deadline`,`totalMarks`,`status`,`type`,`questions`,`createdAt`,`updatedAt`) VALUES ('a1657faf-e614-478d-9bbf-4e2e5f181cd5','Build a Full Stack Application','86442a17-d4c5-4ad5-9514-ba97b2221991','Advanced Full Stack Development','2026-03-20',100,'Pending','Written','[]','2026-03-07 05:23:45','2026-03-07 05:23:45');
+Γ£à Seeded 1 assignments
+Executing (default): INSERT INTO `Announcements` (`id`,`title`,`message`,`audience`,`status`,`date`,`postedBy`,`createdAt`,`updatedAt`) VALUES ('53e77268-fc6a-470a-91a4-6ab32158edf0','Welcome to the new LMS Platform!','We have fully integrated our backend and removed mock data. Enjoy a real database experience.','All','Published','2026-03-07','System Admin','2026-03-07 05:23:45','2026-03-07 05:23:45');
+Γ£à Seeded 1 announcements
+Executing (default): INSERT INTO `Questions` (`id`,`text`,`type`,`topic`,`difficulty`,`options`,`correctAnswer`,`marks`,`lastEdited`,`createdAt`,`updatedAt`) VALUES ('cf7ab53b-5e7f-42f4-8d63-12e2fa7f9ca7','What is the SI unit of Force?','Multiple Choice','Physics','Easy','[\"Newton\",\"Joule\",\"Pascal\",\"Watt\"]','Newton',1,'Just now','2026-03-07 05:23:45','2026-03-07 05:23:45'),('dbd185a1-c851-4554-885c-29884d0f4661','The value of Acceleration due to gravity (g) is approximately 9.8 m/s┬▓.','True/False','Physics','Medium',NULL,'True',1,'Just now','2026-03-07 05:23:45','2026-03-07 05:23:45');
+Γ£à Seeded 2 questions
+Executing (default): INSERT INTO `Exams` (`id`,`title`,`courseId`,`courseName`,`teacherName`,`questions`,`totalMarks`,`duration`,`status`,`sections`,`versions`,`createdAt`,`updatedAt`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?);
+Γ£à Seeded 1 exam
+Executing (default): INSERT INTO `Notifications` (`id`,`title`,`message`,`type`,`role`,`read`,`createdAt`,`updatedAt`) VALUES ('78f12a56-2075-4f87-bcae-f56bd9982355','Welcome!','Welcome to the new BrightMind LMS!','success','All',false,'2026-03-07 05:23:46','2026-03-07 05:23:46'),('dbe72238-1a11-4227-948e-26506fe370ab','Exam Pending','A new exam \"Monthly Physics Assessment\" is pending approval.','warning','Admin',false,'2026-03-07 05:23:46','2026-03-07 05:23:46');
+Γ£à Seeded 2 notifications
+Executing (default): INSERT INTO `LiveClasses` (`id`,`title`,`course`,`date`,`time`,`duration`,`platform`,`link`,`status`,`isLive`,`studentsJoined`,`mentor`,`avatar`,`createdAt`,`updatedAt`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);
+node.exe : Γ¥î Seeding 
+failed: Error
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" "C:\Us
+ers\Asus\AppData\Roaming\n 
+...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecifi    ed: (Γ¥î 
+Seeding f    ailed: 
+Error:Strin    g) [], 
+RemoteExcep    tion
+    + FullyQualifiedEr    
+rorId : NativeComm    
+andError
+ 
+    at Query.run (C:\Users\As
+us\Downloads\brightmind-react
+-animated\brightmind-backend\
+node_modules\sequelize\lib\di
+alects\mysql\query.js:52:25)
+    at C:\Users\Asus\Download
+s\brightmind-react-animated\b
+rightmind-backend\node_module
+s\sequelize\lib\sequelize.js:
+315:28
+    at process.processTicksAn
+dRejections (node:internal/pr
+ocess/task_queues:105:5)
+    at async 
+MySQLQueryInterface.insert (C
+:\Users\Asus\Downloads\bright
+mind-react-animated\brightmin
+d-backend\node_modules\sequel
+ize\lib\dialects\abstract\que
+ry-interface.js:308:21)
+    at async model.save (C:\U
+sers\Asus\Downloads\brightmin
+d-react-animated\brightmind-b
+ackend\node_modules\sequelize
+\lib\model.js:2490:35)
+    at async 
+LiveClass.create (C:\Users\As
+us\Downloads\brightmind-react
+-animated\brightmind-backend\
+node_modules\sequelize\lib\mo
+del.js:1362:12)
+    at async seedData (C:\Use
+rs\Asus\Downloads\brightmind-
+react-animated\brightmind-bac
+kend\scripts\seed.js:178:27) 
+{
+  name: 
+'SequelizeDatabaseError',
+  parent: Error: Table 
+'railway.LiveClasses' 
+doesn't exist
+      at Packet.asError (C:\U
+sers\Asus\Downloads\brightmin
+d-react-animated\brightmind-b
+ackend\node_modules\mysql2\li
+b\packets\packet.js:739:17)
+      at Prepare.execute (C:\
+Users\Asus\Downloads\brightmi
+nd-react-animated\brightmind-
+backend\node_modules\mysql2\l
+ib\commands\command.js:29:26)
+      at 
+Connection.handlePacket (C:\U
+sers\Asus\Downloads\brightmin
+d-react-animated\brightmind-b
+ackend\node_modules\mysql2\li
+b\base\connection.js:508:34)
+      at 
+PacketParser.onPacket (C:\Use
+rs\Asus\Downloads\brightmind-
+react-animated\brightmind-bac
+kend\node_modules\mysql2\lib\
+base\connection.js:93:12)
+      at 
+PacketParser.executeStart (C:
+\Users\Asus\Downloads\brightm
+ind-react-animated\brightmind
+-backend\node_modules\mysql2\
+lib\packet_parser.js:75:16)
+      at Socket.<anonymous> (
+C:\Users\Asus\Downloads\brigh
+tmind-react-animated\brightmi
+nd-backend\node_modules\mysql
+2\lib\base\connection.js:100:
+25)
+      at Socket.emit 
+(node:events:519:28)
+      at addChunk (node:inter
+nal/streams/readable:561:12)
+      at 
+readableAddChunkPushByteMode 
+(node:internal/streams/readab
+le:512:3)
+      at Readable.push (node:
+internal/streams/readable:392
+:5) {
+    code: 'ER_NO_SUCH_TABLE',
+    errno: 1146,
+    sqlState: '42S02',
+    sqlMessage: "Table 
+'railway.LiveClasses' 
+doesn't exist",
+    sql: 'INSERT INTO 
+`LiveClasses` (`id`,`title`,`
+course`,`date`,`time`,`durati
+on`,`platform`,`link`,`status
+`,`isLive`,`studentsJoined`,`
+mentor`,`avatar`,`createdAt`,
+`updatedAt`) VALUES (?,?,?,?,
+?,?,?,?,?,?,?,?,?,?,?);',
+    parameters: [
+      '6270d294-cb54-476e-94c
+b-dd0b2c45b6d5',
+      'Live Q&A: 
+Architecture Patterns',
+      'Advanced Full Stack 
+Development',
+      '2026-03-07',
+      '10:00 AM',
+      '60 mins',
+      'Zoom',
+      'https://zoom.us/j/1234
+56789',
+      'Upcoming',
+      false,
+      0,
+      'Ananay Sharma',
+      'https://ui-avatars.com
+/api/?name=Teacher',
+      '2026-03-07 05:23:46',
+      '2026-03-07 05:23:46'
+    ]
+  },
+  original: Error: Table 
+'railway.LiveClasses' 
+doesn't exist
+      at Packet.asError (C:\U
+sers\Asus\Downloads\brightmin
+d-react-animated\brightmind-b
+ackend\node_modules\mysql2\li
+b\packets\packet.js:739:17)
+      at Prepare.execute (C:\
+Users\Asus\Downloads\brightmi
+nd-react-animated\brightmind-
+backend\node_modules\mysql2\l
+ib\commands\command.js:29:26)
+      at 
+Connection.handlePacket (C:\U
+sers\Asus\Downloads\brightmin
+d-react-animated\brightmind-b
+ackend\node_modules\mysql2\li
+b\base\connection.js:508:34)
+      at 
+PacketParser.onPacket (C:\Use
+rs\Asus\Downloads\brightmind-
+react-animated\brightmind-bac
+kend\node_modules\mysql2\lib\
+base\connection.js:93:12)
+      at 
+PacketParser.executeStart (C:
+\Users\Asus\Downloads\brightm
+ind-react-animated\brightmind
+-backend\node_modules\mysql2\
+lib\packet_parser.js:75:16)
+      at Socket.<anonymous> (
+C:\Users\Asus\Downloads\brigh
+tmind-react-animated\brightmi
+nd-backend\node_modules\mysql
+2\lib\base\connection.js:100:
+25)
+      at Socket.emit 
+(node:events:519:28)
+      at addChunk (node:inter
+nal/streams/readable:561:12)
+      at 
+readableAddChunkPushByteMode 
+(node:internal/streams/readab
+le:512:3)
+      at Readable.push (node:
+internal/streams/readable:392
+:5) {
+    code: 'ER_NO_SUCH_TABLE',
+    errno: 1146,
+    sqlState: '42S02',
+    sqlMessage: "Table 
+'railway.LiveClasses' 
+doesn't exist",
+    sql: 'INSERT INTO 
+`LiveClasses` (`id`,`title`,`
+course`,`date`,`time`,`durati
+on`,`platform`,`link`,`status
+`,`isLive`,`studentsJoined`,`
+mentor`,`avatar`,`createdAt`,
+`updatedAt`) VALUES (?,?,?,?,
+?,?,?,?,?,?,?,?,?,?,?);',
+    parameters: [
+      '6270d294-cb54-476e-94c
+b-dd0b2c45b6d5',
+      'Live Q&A: 
+Architecture Patterns',
+      'Advanced Full Stack 
+Development',
+      '2026-03-07',
+      '10:00 AM',
+      '60 mins',
+      'Zoom',
+      'https://zoom.us/j/1234
+56789',
+      'Upcoming',
+      false,
+      0,
+      'Ananay Sharma',
+      'https://ui-avatars.com
+/api/?name=Teacher',
+      '2026-03-07 05:23:46',
+      '2026-03-07 05:23:46'
+    ]
+  },
+  sql: 'INSERT INTO 
+`LiveClasses` (`id`,`title`,`
+course`,`date`,`time`,`durati
+on`,`platform`,`link`,`status
+`,`isLive`,`studentsJoined`,`
+mentor`,`avatar`,`createdAt`,
+`updatedAt`) VALUES (?,?,?,?,
+?,?,?,?,?,?,?,?,?,?,?);',
+  parameters: [
+    '6270d294-cb54-476e-94cb-
+dd0b2c45b6d5',
+    'Live Q&A: Architecture 
+Patterns',
+    'Advanced Full Stack 
+Development',
+    '2026-03-07',
+    '10:00 AM',
+    '60 mins',
+    'Zoom',
+    'https://zoom.us/j/123456
+789',
+    'Upcoming',
+    false,
+    0,
+    'Ananay Sharma',
+    'https://ui-avatars.com/a
+pi/?name=Teacher',
+    '2026-03-07 05:23:46',
+    '2026-03-07 05:23:46'
+  ]
+}
