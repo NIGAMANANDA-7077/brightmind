@@ -14,7 +14,7 @@ console.log("DB Port:", process.env.DB_PORT || process.env.MYSQLPORT || 3306);
 console.log("---------------------------");
 
 const sequelize = new Sequelize(
-    process.env.DB_NAME || process.env.MYSQLDATABASE || 'brightmind_db',
+    process.env.DB_NAME || process.env.MYSQLDATABASE || 'lms_database',
     process.env.DB_USER || process.env.MYSQLUSER || 'root',
     process.env.DB_PASS || process.env.MYSQLPASSWORD || '',
     {
