@@ -6,19 +6,60 @@ import {
     ChevronDown, ChevronUp, Lock, PlayCircle, Globe, Award
 } from 'lucide-react';
 import { publicCourses } from '../data/publicCoursesMock';
+import { courses as homeCourses } from '../data/courses';
+import { useUser } from '../context/UserContext';
 
 const PublicCourseDetail = () => {
     const { courseId } = useParams();
     const navigate = useNavigate();
-
-    // In a real app, we check auth state here
-    const isLoggedIn = false; // Mock state
+    const { user } = useUser();
 
     useEffect(() => {
         window.scrollTo(0, 0);
     }, []);
 
-    const course = publicCourses.find(c => c.id === courseId);
+    // Find course in publicCourses first, then fallback to homeCourses
+    let course = publicCourses.find(c => String(c.id) === String(courseId));
+
+    // If not found in primary detail mock, try secondary home mock and map fields
+    if (!course) {
+        const homeCourse = homeCourses.find(c => String(c.id) === String(courseId));
+        if (homeCourse) {
+            course = {
+                ...homeCourse,
+                subtitle: `Master the fundamentals of ${homeCourse.category} with this comprehensive course.`,
+                thumbnail: homeCourse.image,
+                enrolled: homeCourse.students,
+                reviewsCount: Math.floor(homeCourse.students / 10),
+                level: "All Levels",
+                description: homeCourse.title + " is designed for students looking to gain practical skills in " + homeCourse.category + ". You will learn through hands-on projects and expert guidance.",
+                whatYouWillLearn: [
+                    "Core principles of " + homeCourse.category,
+                    "Practical techniques and workflows",
+                    "Industry best practices",
+                    "Building a real-world project"
+                ],
+                instructor: {
+                    ...homeCourse.instructor,
+                    role: "Expert Instructor",
+                    bio: homeCourse.instructor.name + " is a specialist in " + homeCourse.category + " with years of industry experience.",
+                    students: homeCourse.students + "+",
+                    courses: 5
+                },
+                curriculum: [
+                    {
+                        title: "Introduction",
+                        duration: homeCourse.duration,
+                        lessons: [
+                            { title: "Course Overview", duration: "10:00", isFree: true },
+                            { title: "Getting Started", duration: "15:00", isFree: false }
+                        ]
+                    }
+                ],
+                reviews: []
+            };
+        }
+    }
 
     if (!course) {
         return (
@@ -31,10 +72,11 @@ const PublicCourseDetail = () => {
         );
     }
 
+    const isLoggedIn = !!user;
+
     const handleEnroll = () => {
         if (!isLoggedIn) {
-            // Redirect to login with proper return url
-            // For now just simple redirect
+            // Redirect to login
             navigate('/login');
         } else {
             alert("Enrollment successful (mock)!");

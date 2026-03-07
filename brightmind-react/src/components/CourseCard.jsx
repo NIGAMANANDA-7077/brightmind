@@ -1,11 +1,12 @@
 import React from 'react';
 import { Star, BookOpen, Clock, GraduationCap } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const CourseCard = ({ course }) => {
     return (
         <div className="group bg-white rounded-3xl p-4 md:p-5 hover:shadow-xl transition-all duration-300 border border-transparent hover:border-gray-100 h-full flex flex-col relative overflow-hidden">
             {/* Course Image */}
-            <div className="relative rounded-2xl overflow-hidden mb-5 h-56 md:h-64">
+            <Link to={`/courses/${course.id}`} className="relative rounded-2xl overflow-hidden mb-5 h-56 md:h-64 block">
                 <img
                     src={course.image}
                     alt={course.title}
@@ -15,13 +16,15 @@ const CourseCard = ({ course }) => {
                     <Star className="w-4 h-4 fill-orange-400 text-orange-400" />
                     <span className="font-bold text-sm text-gray-900">{course.rating}</span>
                 </div>
-            </div>
+            </Link>
 
             {/* Course Content */}
             <div className="flex flex-col flex-1">
-                <h3 className="font-bold text-xl text-gray-900 mb-4 leading-tight group-hover:text-[#8b5cf6] transition-colors line-clamp-2">
-                    {course.title}
-                </h3>
+                <Link to={`/courses/${course.id}`}>
+                    <h3 className="font-bold text-xl text-gray-900 mb-4 leading-tight group-hover:text-[#8b5cf6] transition-colors line-clamp-2">
+                        {course.title}
+                    </h3>
+                </Link>
 
                 {/* Course Stats */}
                 <div className="flex items-center gap-2 mb-6 text-xs text-gray-500 font-medium flex-wrap">
