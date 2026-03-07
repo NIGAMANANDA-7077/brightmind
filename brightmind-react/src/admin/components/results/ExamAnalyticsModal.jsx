@@ -36,7 +36,7 @@ const ExamAnalyticsModal = ({ isOpen, onClose, exam }) => {
                             <button className="text-xs font-medium text-purple-600 hover:underline">View Full Report</button>
                         </div>
                         <div className="h-[200px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                 <BarChart data={exam.distribution}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                                     <XAxis dataKey="range" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 10 }} dy={10} />

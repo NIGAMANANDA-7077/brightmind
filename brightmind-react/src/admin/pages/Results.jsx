@@ -90,7 +90,7 @@ const ResultsContent = () => {
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
                     <h3 className="font-bold text-gray-900 mb-6">Performance Trend</h3>
                     <div className="h-[250px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                             <LineChart data={trendData}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
                                 <XAxis

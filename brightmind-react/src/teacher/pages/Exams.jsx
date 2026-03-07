@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { useUser } from '../../context/UserContext';
 import api from '../../utils/axiosConfig';
 import { FileQuestion, Plus, Search, Clock, FileText, CheckCircle, AlertCircle, Loader2, UploadCloud, X, Calendar, BarChart3 } from 'lucide-react';
@@ -6,6 +7,15 @@ const Exams = () => {
     const { user } = useUser();
     const [activeTab, setActiveTab] = useState('My Exams');
     const [courses, setCourses] = useState([]);
+    const [exams, setExams] = useState([]);
+    const [results, setResults] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [uploading, setUploading] = useState(false);
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [showScheduleModal, setShowScheduleModal] = useState(false);
+    const [selectedExam, setSelectedExam] = useState(null);
+    const [form, setForm] = useState({ title: '', courseId: '', courseName: '', duration: 60, totalMarks: 100, questions: [] });
+    const [scheduleForm, setScheduleForm] = useState({ scheduledAt: '', duration: 60 });
 
     const fetchData = async () => {
         if (!user?.id) return;
