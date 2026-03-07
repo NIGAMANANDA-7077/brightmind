@@ -50,7 +50,8 @@ app.use(cors({
     origin: function (origin, callback) {
         const allowedOrigins = [
             'http://localhost:5173',
-            'https://brightmind-nine.vercel.app'
+            'https://brightmind-nine.vercel.app',
+            'https://brightmind-git-main-nigamananda-7077s-projects.vercel.app'
         ];
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
