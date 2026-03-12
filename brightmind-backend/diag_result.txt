@@ -1,0 +1,16 @@
+Student ID: 7a4df900-6ffe-4cd8-8638-54c47bc3cc4a
+Extracted Course IDs: ["e7b975cf-f4ec-4c96-b802-e6fc9cdef7a9","a10d16ff-cbfa-43e1-85af-602327b0d74a"]
+Extracted Batch IDs: ["b4180285-3702-42a2-bf9b-ea847d725f3c"]
+
+Backend exams fetched: 8
+Student has 0 results.
+
+Frontend filtered available exams: 8
+- Available Exam: gnd (6980592b-fb19-4154-a926-08664b8ec01c)
+- Available Exam: bhfccv (c9eb15c4-89f1-440e-928b-101b5b4436c7)
+- Available Exam: bhfccv (2f2514b5-1097-432e-845a-d58a3dc92ab1)
+- Available Exam:  (10f68fd9-7163-49c1-ae8a-4b5cbb890046)
+- Available Exam:  (592661b9-e138-4a4f-9276-a9f3a4198a77)
+- Available Exam: Exam 1773290756232 (41e94e21-2dc0-439d-bb72-1537c4657582)
+- Available Exam:  (663cd6ca-cb07-455c-a4b4-b86eb0d97fd3)
+- Available Exam:  (e10afc5e-db9d-418f-8397-f75b722aa82b)

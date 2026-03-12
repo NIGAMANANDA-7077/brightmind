@@ -1,5 +1,6 @@
 const { Exam, ExamQuestion, QuestionBank, QuestionOption, Course } = require('../models/associations');
 const { Op } = require('sequelize');
+const sequelize = require('../config/db');
 
 exports.createExam = async (req, res, next) => {
     try {
@@ -90,6 +91,13 @@ exports.generateRandomPaper = async (req, res, next) => {
 
         const allQs = [...easyQs, ...medQs, ...hardQs];
         
+        if (allQs.length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "No questions found in the bank for this course matching the criteria." 
+            });
+        }
+        
         // Remove existing questions
         await ExamQuestion.destroy({ where: { examId } });
 
@@ -125,12 +133,11 @@ exports.getTeacherExams = async (req, res, next) => {
 exports.getStudentExams = async (req, res, next) => {
     try {
         const studentId = req.user.id;
-        const { BatchStudent, Batch, Enrollment } = require('../models/associations');
+        const { User, Batch, Enrollment, Course } = require('../models/associations');
         
-        // Find enrolled batches
-        const batchEnrollments = await BatchStudent.findAll({ 
-            where: { studentId },
-            include: [{ model: Batch, as: 'batch', attributes: ['courseId'] }]
+        // Find enrolled batches via User
+        const studentWithBatches = await User.findByPk(studentId, {
+            include: [{ model: Batch, as: 'enrolledBatches', attributes: ['id', 'courseId'] }]
         });
         
         // Find direct course enrollments
@@ -139,8 +146,8 @@ exports.getStudentExams = async (req, res, next) => {
             attributes: ['courseId']
         });
 
-        const batchIds = batchEnrollments.map(e => e.batchId);
-        const courseIdsFromBatches = batchEnrollments.map(e => e.batch?.courseId).filter(Boolean);
+        const batchIds = studentWithBatches ? studentWithBatches.enrolledBatches.map(b => b.id) : [];
+        const courseIdsFromBatches = studentWithBatches ? studentWithBatches.enrolledBatches.map(b => b.courseId).filter(Boolean) : [];
         const courseIdsFromEnrollments = directEnrollments.map(e => e.courseId);
         
         const allCourseIds = [...new Set([...courseIdsFromBatches, ...courseIdsFromEnrollments])];
