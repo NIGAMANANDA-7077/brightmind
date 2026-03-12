@@ -36,10 +36,12 @@ export const AdminGlobalProvider = ({ children }) => {
     };
 
     const fetchBatches = async () => {
-        setBatches([
-            { id: 1, name: 'Batch A', createdAt: '2025-01-01' },
-            { id: 2, name: 'Batch B', createdAt: '2025-01-01' }
-        ]);
+        try {
+            const res = await api.get('/batches');
+            setBatches(res.data.data || res.data);
+        } catch (err) {
+            console.error("Failed to fetch batches:", err);
+        }
     };
 
 
@@ -91,12 +93,22 @@ export const AdminGlobalProvider = ({ children }) => {
         return newBatch;
     };
 
-    const assignBatchToUser = (userId, batchName) => {
-        setUsers(users.map(u => u.id === userId ? { ...u, batch: batchName } : u));
+    const assignBatchToUser = async (userId, batchId, batchName) => {
+        try {
+            await api.post(`/batches/${batchId}/students`, { studentIds: [userId] });
+            setUsers(users.map(u => u.id === userId ? { ...u, enrolledBatches: [{ id: batchId, batchName }] } : u));
+        } catch (err) {
+            console.error("Failed to assign batch", err);
+        }
     };
 
-    const assignBatchToUsers = (userIds, batchName) => {
-        setUsers(users.map(u => userIds.includes(u.id) ? { ...u, batch: batchName } : u));
+    const assignBatchToUsers = async (userIds, batchId, batchName) => {
+        try {
+            await api.post(`/batches/${batchId}/students`, { studentIds: userIds });
+            setUsers(users.map(u => userIds.includes(u.id) ? { ...u, enrolledBatches: [{ id: batchId, batchName }] } : u));
+        } catch (err) {
+            console.error("Failed to assign batch", err);
+        }
     };
 
     // Announcement Actions — delegated to SharedAnnouncementsContext

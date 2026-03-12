@@ -1,6 +1,7 @@
 const Enrollment = require('../models/Enrollment');
 const Course = require('../models/Course');
 const LessonProgress = require('../models/LessonProgress');
+const User = require('../models/User');
 
 class ProgressService {
     async enrollStudent(studentId, courseId) {
@@ -18,16 +19,43 @@ class ProgressService {
     async getStudentEnrollments(studentId) {
         const enrollments = await Enrollment.findAll({ where: { studentId } });
         const courseIds = enrollments.map(e => e.courseId);
-        const courses = await Course.findAll({ where: { id: courseIds } });
+        const Module = require('../models/Module');
+        const Lesson = require('../models/Lesson');
 
-        return courses.map(c => {
+        const courses = await Course.findAll({
+            where: { id: courseIds },
+            include: [
+                {
+                    model: Module,
+                    as: 'courseModules',
+                    include: [{ model: Lesson, as: 'lessons' }]
+                }
+            ],
+            order: [
+                [{ model: Module, as: 'courseModules' }, 'moduleOrder', 'ASC'],
+                [{ model: Module, as: 'courseModules' }, { model: Lesson, as: 'lessons' }, 'lessonOrder', 'ASC']
+            ]
+        });
+
+        return await Promise.all(courses.map(async (c) => {
             const enrollData = enrollments.find(e => e.courseId === c.id);
+            let instructorName = 'Unknown Instructor';
+            let instructorAvatar = 'https://ui-avatars.com/api/?name=User&background=random';
+            if (c.teacherId) {
+                const teacher = await User.findByPk(c.teacherId);
+                if (teacher) {
+                    instructorName = teacher.name;
+                    instructorAvatar = teacher.avatar;
+                }
+            }
             return {
                 ...c.toJSON(),
                 progress: enrollData.progressPercentage,
-                enrolledAt: enrollData.enrolledAt
+                enrolledAt: enrollData.enrolledAt,
+                instructor: instructorName,
+                instructorAvatar: instructorAvatar
             };
-        });
+        }));
     }
 
     async markLessonComplete(studentId, courseId, moduleId, lessonId) {
@@ -46,9 +74,14 @@ class ProgressService {
         }
 
         // Recalculate progress
-        const course = await Course.findByPk(courseId);
-        if (course && course.modules) {
-            const allLessons = course.modules.flatMap(m => m.lessons || []);
+        const Module = require('../models/Module');
+        const Lesson = require('../models/Lesson');
+        const course = await Course.findByPk(courseId, {
+            include: [{ model: Module, as: 'courseModules', include: [{ model: Lesson, as: 'lessons' }] }]
+        });
+
+        if (course && course.courseModules) {
+            const allLessons = course.courseModules.flatMap(m => m.lessons || []);
             const totalLessons = allLessons.length;
 
             if (totalLessons > 0) {

@@ -24,7 +24,12 @@ const CourseCard = ({ course }) => {
 
             <div className="p-5">
                 <h3 className="font-bold text-lg text-gray-900 mb-2 line-clamp-1">{course.title}</h3>
-                <p className="text-gray-500 text-sm mb-4">By {course.instructor}</p>
+                <div className="flex items-center gap-2 mb-4">
+                    {course.instructorAvatar && (
+                        <img src={course.instructorAvatar} alt={course.instructor} className="w-5 h-5 rounded-full border border-gray-100 object-cover" />
+                    )}
+                    <p className="text-gray-500 text-xs font-medium">By {course.instructor}</p>
+                </div>
 
                 <div className="mb-4">
                     <div className="flex justify-between text-xs font-bold text-gray-600 mb-2">
@@ -40,14 +45,10 @@ const CourseCard = ({ course }) => {
                         : 'bg-[#8b5cf6] text-white hover:bg-[#7c3aed] shadow-lg shadow-purple-500/20'
                         }`}
                     onClick={() => {
-                        if (course.progress === 100) {
-                            navigate(`/student/course/${course.id}`);
-                        } else {
-                            navigate(`/student/course/${course.id}/watch`);
-                        }
+                        navigate(`/student/course/${course.id}/watch`);
                     }}
                 >
-                    {course.progress === 100 ? 'View Certificate' : 'Continue Learning'}
+                    {course.progress === 100 ? 'Review Course' : 'Continue Learning'}
                 </button>
             </div>
         </div>

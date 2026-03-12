@@ -30,13 +30,14 @@ const Users = () => {
         const matchesRole = u.role === activeTab;
         const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             u.email.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesBatch = batchFilter === 'All' || u.batch === batchFilter;
+        const hasBatch = u.enrolledBatches?.some(b => b.batchName === batchFilter || b.name === batchFilter) || u.batch === batchFilter;
+        const matchesBatch = batchFilter === 'All' || hasBatch;
 
         return matchesRole && matchesSearch && matchesBatch;
     });
 
     const studentsInBatchCount = batchFilter !== 'All'
-        ? users.filter(u => u.role === 'Student' && u.batch === batchFilter).length
+        ? users.filter(u => u.role === 'Student' && (u.enrolledBatches?.some(b => b.batchName === batchFilter || b.name === batchFilter) || u.batch === batchFilter)).length
         : users.filter(u => u.role === 'Student').length;
 
     // Handlers

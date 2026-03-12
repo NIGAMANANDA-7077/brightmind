@@ -1,21 +1,38 @@
-import React, { useState } from 'react';
-import { useAdminExams } from '../context/AdminExamContext';
-import { Search, Plus, Upload, Filter, MoreVertical, Edit, Trash2, Database, FileText, CheckSquare, AlignLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Plus, Upload, Filter, MoreVertical, Edit, Trash2, Database, FileText, CheckSquare, AlignLeft, ShieldCheck, Globe } from 'lucide-react';
 import QuestionFormModal from '../components/questions/QuestionFormModal';
 import BulkImportModal from '../components/questions/BulkImportModal';
 import AddToExamModal from '../components/questions/AddToExamModal';
+import { useAdminExams } from '../context/AdminExamContext';
+import { useUser } from '../../context/UserContext';
 
 const Questions = () => {
-    const { questions, deleteQuestion } = useAdminExams();
+    const { questions, deleteQuestion, fetchTopics } = useAdminExams();
+    const { user } = useUser();
     const [searchTerm, setSearchTerm] = useState('');
     const [topicFilter, setTopicFilter] = useState('All');
     const [typeFilter, setTypeFilter] = useState('All');
+    const [availableTopics, setAvailableTopics] = useState([]);
+
+    useEffect(() => {
+        const loadTopics = async () => {
+            const list = await fetchTopics();
+            setAvailableTopics(list);
+        };
+        loadTopics();
+    }, [questions]);
 
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isImportOpen, setIsImportOpen] = useState(false);
     const [isAddToExamOpen, setIsAddToExamOpen] = useState(false);
     const [editingQuestion, setEditingQuestion] = useState(null);
     const [selectedQuestionForExam, setSelectedQuestionForExam] = useState(null);
+
+    // Permission check
+    const canManageQuestion = (q) => {
+        if (user?.role === 'Admin') return true;
+        return q.teacherId === user?.id;
+    };
 
     // Filter Logic
     const filteredQuestions = questions.filter(q => {
@@ -96,10 +113,9 @@ const Questions = () => {
                         onChange={(e) => setTopicFilter(e.target.value)}
                     >
                         <option value="All">All Topics</option>
-                        <option value="Physics">Physics</option>
-                        <option value="Chemistry">Chemistry</option>
-                        <option value="Math">Math</option>
-                        <option value="Biology">Biology</option>
+                        {availableTopics.map(t => (
+                            <option key={t} value={t}>{t}</option>
+                        ))}
                     </select>
                     <select
                         className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 text-gray-600"
@@ -130,13 +146,22 @@ const Questions = () => {
                         <tbody className="divide-y divide-gray-100">
                             {filteredQuestions.map((q) => (
                                 <tr key={q.id} className="hover:bg-gray-50 transition-colors group">
-                                    <td className="py-4 px-6">
-                                        <p className="text-sm font-semibold text-gray-900 line-clamp-2">{q.text}</p>
-                                        <p className="text-xs text-gray-400 mt-1">Last edited {q.lastEdited}</p>
+                                    <td className="py-4 px-6 border-b border-gray-100">
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-sm font-semibold text-gray-900 line-clamp-1">{q.text}</p>
+                                                {!q.teacherId && (
+                                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100">
+                                                        <Globe size={10} /> SHARED
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-gray-400 mt-1">Topic: {q.topic}</p>
+                                        </div>
                                     </td>
                                     <td className="py-4 px-6">
                                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-purple-50 text-purple-700">
-                                            <Database size={12} /> {q.topic}
+                                            {q.topic}
                                         </span>
                                     </td>
                                     <td className="py-4 px-6 text-center">
@@ -167,18 +192,22 @@ const Questions = () => {
                                             >
                                                 <Plus size={16} />
                                             </button>
-                                            <button
-                                                onClick={() => handleEdit(q)}
-                                                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                            >
-                                                <Edit size={16} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(q.id)}
-                                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
+                                            {canManageQuestion(q) && (
+                                                <>
+                                                    <button
+                                                        onClick={() => handleEdit(q)}
+                                                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    >
+                                                        <Edit size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(q.id)}
+                                                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

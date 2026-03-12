@@ -27,7 +27,7 @@ const Contact = () => {
             icon: Phone,
             title: 'Contact us',
             description: 'Mon-Fri from 8am to 5pm.',
-            contactInfo: '+91 98765 43210',
+            contactInfo: '+91 1234567890',
             colorClass: 'bg-[#fff7ed]' // Light Orange
         }
     ];

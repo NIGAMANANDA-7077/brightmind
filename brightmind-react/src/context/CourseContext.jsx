@@ -35,10 +35,14 @@ export const CourseProvider = ({ children }) => {
                 const completedLessonIds = progressRes.data.completedLessons.map(p => p.lessonId);
 
                 // Map over the course modules to inject the isCompleted flag dynamically
-                const updatedModules = (course.modules || []).map(module => ({
+                // Support both 'courseModules' (new) and 'modules' (old/fallback)
+                const sourceModules = course.courseModules || course.modules || [];
+                const updatedModules = sourceModules.map(module => ({
                     ...module,
+                    title: module.moduleTitle || module.title, // Standardize title
                     lessons: (module.lessons || []).map(lesson => ({
                         ...lesson,
+                        title: lesson.lessonTitle || lesson.title, // Standardize lesson title
                         isCompleted: completedLessonIds.includes(lesson.id)
                     }))
                 }));
@@ -49,7 +53,7 @@ export const CourseProvider = ({ children }) => {
 
                 return {
                     ...course,
-                    modules: updatedModules,
+                    modules: updatedModules, // Keep it as 'modules' for frontend components
                     totalLessons,
                     completedLessons: completedCount,
                     progress: course.progress || 0
@@ -114,8 +118,8 @@ export const CourseProvider = ({ children }) => {
 
     const getProgress = (courseId) => {
         const course = getCourse(courseId);
-        if (!course) return 0;
-        return course.progress || 0;
+        if (!course || !course.totalLessons) return 0;
+        return Math.round((course.completedLessons / course.totalLessons) * 100);
     };
 
     const getCompletedLessonsCount = (courseId) => {

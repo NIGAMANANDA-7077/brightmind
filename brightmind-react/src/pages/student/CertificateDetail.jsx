@@ -20,11 +20,11 @@ const CertificateDetail = () => {
                     if (found) {
                         setCert({
                             id: found.id,
-                            studentName: "Student", // Ideally get from user context
+                            studentName: found.studentName || "Student", // Use studentName from Join
                             course: found.courseTitle,
                             issueDate: new Date(found.issueDate).toLocaleDateString(),
-                            grade: 'A+', // Mocked unless stored in DB
-                            scores: { quizzes: 95, assignments: 90 }, // Mocked unless tracked
+                            grade: found.grade || 'A',
+                            scores: found.scores || { quizzes: 0, assignments: 0 },
                             issuedBy: found.issuedBy || 'Bright MIND Admin'
                         });
                     }

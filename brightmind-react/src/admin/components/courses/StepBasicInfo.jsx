@@ -1,7 +1,7 @@
 import React from 'react';
 import { Image as ImageIcon } from 'lucide-react';
 
-const StepBasicInfo = ({ data, updateData }) => {
+const StepBasicInfo = ({ data, updateData, teachers = [] }) => {
     const handleChange = (e) => {
         updateData({ ...data, [e.target.name]: e.target.value });
     };
@@ -31,6 +31,21 @@ const StepBasicInfo = ({ data, updateData }) => {
                         placeholder="Brief summary of what students will learn..."
                         className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#8b5cf6] focus:ring-4 focus:ring-[#8b5cf6]/10 transition-all resize-none"
                     />
+                </div>
+
+                <div className="col-span-full">
+                    <label className="block text-sm font-bold text-gray-900 mb-2">Assign Teacher</label>
+                    <select
+                        name="teacherId"
+                        value={data.teacherId || ''}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#8b5cf6] focus:ring-4 focus:ring-[#8b5cf6]/10 transition-all"
+                    >
+                        <option value="">-- Select Teacher (Optional) --</option>
+                        {teachers.map(t => (
+                            <option key={t.id} value={t.id}>{t.name} ({t.email})</option>
+                        ))}
+                    </select>
                 </div>
 
                 <div>

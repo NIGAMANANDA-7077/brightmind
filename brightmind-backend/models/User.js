@@ -60,9 +60,26 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING,
         allowNull: true
     },
+    batchId: {
+        type: DataTypes.UUID,
+        allowNull: true
+    },
     status: {
         type: DataTypes.ENUM('Active', 'Inactive', 'Suspended'),
         defaultValue: 'Active'
+    },
+    totalHoursLearned: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0
+    },
+    monthlyProgress: {
+        type: DataTypes.JSON, // Array of { name: 'Week X', hours: Y }
+        defaultValue: [
+            { name: 'Week 1', hours: 0 },
+            { name: 'Week 2', hours: 0 },
+            { name: 'Week 3', hours: 0 },
+            { name: 'Week 4', hours: 0 }
+        ]
     }
 }, {
     timestamps: true,

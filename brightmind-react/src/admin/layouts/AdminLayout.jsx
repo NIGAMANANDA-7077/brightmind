@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Navigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 import { AdminResultsProvider } from '../context/AdminResultsContext';
+import { useUser } from '../../context/UserContext';
 
 const AdminLayout = () => {
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+    const { user, loading } = useUser();
+
+    if (loading) return null;
+    if (!user || user.role !== 'Admin') {
+        return <Navigate to="/login" replace />;
+    }
 
     return (
         <div className="flex bg-gray-50 min-h-screen">

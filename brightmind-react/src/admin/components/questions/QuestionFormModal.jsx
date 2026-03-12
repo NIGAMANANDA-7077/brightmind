@@ -3,18 +3,30 @@ import { X, Plus, Trash2, Check, Save } from 'lucide-react';
 import { useAdminExams } from '../../context/AdminExamContext';
 
 const QuestionFormModal = ({ isOpen, onClose, initialData = null }) => {
-    const { addQuestion, updateQuestion } = useAdminExams();
+    const { addQuestion, updateQuestion, courses, fetchTopics } = useAdminExams();
+    const [topics, setTopics] = useState([]);
 
     const [formData, setFormData] = useState({
+        courseId: '',
         text: '',
         type: 'MCQ',
-        topic: 'Physics',
+        topic: '',
         difficulty: 'Medium',
         marks: 1,
         options: ['', '', '', ''],
         correctAnswer: '',
         explanation: ''
     });
+
+    useEffect(() => {
+        const loadTopics = async () => {
+            const topicList = await fetchTopics(formData.courseId);
+            setTopics(topicList);
+        };
+        if (isOpen) {
+            loadTopics();
+        }
+    }, [formData.courseId, isOpen]);
 
     useEffect(() => {
         if (initialData) {
@@ -65,6 +77,21 @@ const QuestionFormModal = ({ isOpen, onClose, initialData = null }) => {
                     {/* Main Info */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="col-span-2">
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Course</label>
+                            <select
+                                required
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all"
+                                value={formData.courseId}
+                                onChange={(e) => setFormData({ ...formData, courseId: e.target.value })}
+                            >
+                                <option value="">Select Course...</option>
+                                {courses.map(c => (
+                                    <option key={c.id} value={c.id}>{c.title}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="col-span-2">
                             <label className="block text-sm font-bold text-gray-700 mb-2">Question Text</label>
                             <textarea
                                 required
@@ -78,17 +105,17 @@ const QuestionFormModal = ({ isOpen, onClose, initialData = null }) => {
 
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2">Topic</label>
-                            <select
+                            <input
+                                list="topics-list"
+                                required
                                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all"
+                                placeholder="Type or select topic..."
                                 value={formData.topic}
                                 onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
-                            >
-                                <option value="Physics">Physics</option>
-                                <option value="Chemistry">Chemistry</option>
-                                <option value="Math">Math</option>
-                                <option value="Biology">Biology</option>
-                                <option value="General">General</option>
-                            </select>
+                            />
+                            <datalist id="topics-list">
+                                {topics.map(t => <option key={t} value={t} />)}
+                            </datalist>
                         </div>
 
                         <div>

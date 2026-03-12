@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Clock, Users, Star, Award, BookOpen, PlayCircle,
-    CheckCircle, Lock, Download, Share2, ArrowLeft
+    CheckCircle, Lock, Download, ArrowLeft, FileText, BarChart
 } from 'lucide-react';
 import { useCourse } from '../../context/CourseContext';
 
@@ -86,22 +86,26 @@ const CourseDetail = () => {
                             <div className="flex flex-wrap items-center gap-6 text-sm font-medium text-gray-500">
                                 <div className="flex items-center gap-2">
                                     <Users size={18} className="text-gray-400" />
-                                    <span>{course.students} Students</span>
+                                    <span>{course.studentsEnrolled || 0} Students</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Clock size={18} className="text-gray-400" />
-                                    <span>{course.duration}</span>
+                                    <span>{course.duration || 'Flexible'}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <BarChart size={18} className="text-gray-400" />
+                                    <span>{course.level || 'Beginner'}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <BookOpen size={18} className="text-gray-400" />
-                                    <span>{course.totalLessons} Lessons</span>
+                                    <span>{course.totalLessons || 0} Lessons</span>
                                 </div>
                             </div>
 
                             <div className="mt-8 flex items-center gap-4">
                                 <div className="flex items-center gap-3">
                                     <img
-                                        src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80"
+                                        src={course.instructorAvatar || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80"}
                                         alt={course.instructor}
                                         className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
                                     />
@@ -114,10 +118,67 @@ const CourseDetail = () => {
                         </div>
                     </div>
 
+                    {/* Detailed Description */}
+                    {course.detailedDescription && (
+                        <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm space-y-4 mb-6">
+                            <div className="flex items-center gap-2 text-gray-900 font-bold">
+                                <BookOpen size={20} className="text-[#8b5cf6]" />
+                                About this Course
+                            </div>
+                            <div className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">
+                                {course.detailedDescription}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Learning Outcomes */}
+                    {course.learningOutcomes && (
+                        <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm space-y-4 mb-6">
+                            <div className="flex items-center gap-2 text-gray-900 font-bold">
+                                <Award size={20} className="text-[#8b5cf6]" />
+                                Learning Outcomes
+                            </div>
+                            <div className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap pl-2">
+                                {course.learningOutcomes}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Syllabus Section */}
+                    {course.syllabusText && (
+                        <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm space-y-6 mb-6">
+                            <div className="flex items-center justify-between border-b border-gray-50 pb-4">
+                                <div className="flex items-center gap-2 text-gray-900 font-bold">
+                                    <FileText size={20} className="text-[#8b5cf6]" />
+                                    Course Syllabus
+                                </div>
+                                {course.syllabusUrl && (
+                                    <a
+                                        href={course.syllabusUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1.5 text-[#8b5cf6] text-sm font-bold hover:underline"
+                                    >
+                                        <Download size={16} /> Download PDF
+                                    </a>
+                                )}
+                            </div>
+                            <div className="text-gray-600 text-sm leading-relaxed font-mono bg-gray-50 p-6 rounded-2xl whitespace-pre-wrap border border-gray-100">
+                                {course.syllabusText}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Progress Panel */}
                     <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="text-xl font-bold text-gray-900">Course Content</h3>
+                            <div className="flex items-center gap-2">
+                                {course.instructorAvatar && (
+                                    <img src={course.instructorAvatar} alt={course.instructor} className="w-6 h-6 rounded-full border border-gray-100 object-cover" />
+                                )}
+                                <span className="text-xs font-medium text-gray-500">{course.instructor}</span>
+                            </div>
                             <span className="text-sm font-medium text-gray-500">
                                 {completedCount}/{totalLessons} Lessons Completed
                             </span>
@@ -181,15 +242,14 @@ const CourseDetail = () => {
 
                         <button
                             onClick={handleContinue}
-                            disabled={isCompleted}
                             className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${isCompleted
-                                ? 'bg-green-500 text-white cursor-default'
+                                ? 'bg-green-500 text-white hover:bg-green-600 shadow-lg shadow-green-500/20 active:scale-95'
                                 : 'bg-[#8b5cf6] text-white hover:bg-[#7c3aed] shadow-lg shadow-purple-500/20 active:scale-95'
                                 }`}
                         >
                             {isCompleted ? (
                                 <>
-                                    <CheckCircle size={20} /> Course Completed
+                                    <PlayCircle size={20} /> Review Course
                                 </>
                             ) : (
                                 <>
@@ -205,29 +265,54 @@ const CourseDetail = () => {
                         )}
 
                         <div className="mt-8 pt-6 border-t border-gray-100 space-y-4">
-                            <button className="w-full py-2.5 rounded-xl border border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-                                <Download size={18} /> Download Resources
-                            </button>
-                            <button className="w-full py-2.5 rounded-xl border border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-                                <Share2 size={18} /> Share Course
-                            </button>
+                            {course.syllabusUrl ? (
+                                <a
+                                    href={course.syllabusUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full py-2.5 rounded-xl border border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <Download size={18} /> Download Resources
+                                </a>
+                            ) : (
+                                <button
+                                    disabled
+                                    className="w-full py-2.5 rounded-xl border border-gray-100 text-gray-300 font-bold text-sm cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    <Download size={18} /> No Resources Available
+                                </button>
+                            )}
                         </div>
 
                         <div className="mt-8 pt-6 border-t border-gray-100">
-                            <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-xl">
-                                <div className="p-2 bg-white rounded-lg text-[#8b5cf6]">
-                                    <Award size={20} />
+                            {isCompleted ? (
+                                <button
+                                    onClick={() => navigate('/student/certificates')}
+                                    className="w-full flex items-center gap-3 p-4 bg-green-50 rounded-xl border border-green-100 hover:bg-green-100 transition-colors group cursor-pointer"
+                                >
+                                    <div className="p-2 bg-white rounded-lg text-green-500 shadow-sm">
+                                        <Award size={20} />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <p className="text-xs font-bold text-green-600 uppercase">Certificate Unlocked!</p>
+                                        <p className="text-xs text-green-700">Click to view your certificate</p>
+                                    </div>
+                                    <CheckCircle size={20} className="text-green-500" />
+                                </button>
+                            ) : (
+                                <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-xl">
+                                    <div className="p-2 bg-white rounded-lg text-[#8b5cf6]">
+                                        <Award size={20} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-xs font-bold text-[#8b5cf6] uppercase">Certificate</p>
+                                        <p className="text-xs text-purple-700">
+                                            Complete {totalLessons - completedCount} more lesson{totalLessons - completedCount !== 1 ? 's' : ''} to unlock
+                                        </p>
+                                    </div>
+                                    <Lock size={16} className="text-purple-300" />
                                 </div>
-                                <div>
-                                    <p className="text-xs font-bold text-[#8b5cf6] uppercase">Certificate</p>
-                                    <p className="text-xs text-purple-700">Complete all lessons to unlock</p>
-                                </div>
-                                {isCompleted ? (
-                                    <CheckCircle size={20} className="ml-auto text-green-500" />
-                                ) : (
-                                    <Lock size={16} className="ml-auto text-purple-300" />
-                                )}
-                            </div>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -20,14 +20,14 @@ const WrittenAssignment = ({ assignment, onSubmit }) => {
                     </div>
                     <div>
                         <h3 className="font-bold text-green-900">Assignment Submitted</h3>
-                        <p className="text-green-700 text-sm">Submitted on {assignment.submittedDate}</p>
+                        <p className="text-green-700 text-sm">Submitted on {new Date(assignment.submissionDate).toLocaleDateString()}</p>
                     </div>
                 </div>
 
                 <div className="bg-gray-50 p-8 rounded-3xl border border-gray-200">
                     <h4 className="font-bold text-gray-500 text-sm uppercase tracking-wider mb-4">Your Submission</h4>
                     <p className="text-gray-800 leading-relaxed whitespace-pre-wrap font-serif text-lg">
-                        {assignment.submission.content}
+                        {assignment.studentSubmission?.content}
                     </p>
                 </div>
             </div>

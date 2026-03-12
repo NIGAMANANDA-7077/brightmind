@@ -3,13 +3,18 @@ import { Search, Bell, Menu, X, CheckSquare, Sun, Moon, Check } from 'lucide-rea
 import { Link } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useSharedAnnouncements } from '../../context/SharedAnnouncementsContext';
+import AnnouncementDetailModal from './modals/AnnouncementDetailModal';
 import axios from 'axios';
 
 const Topbar = ({ onMenuClick }) => {
     const { user } = useUser();
     const { isDarkMode, toggleTheme } = useTheme();
+    const { announcements } = useSharedAnnouncements();
     const [notifications, setNotifications] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
+    const [showAnnModal, setShowAnnModal] = useState(false);
+    const [selectedAnn, setSelectedAnn] = useState(null);
     const dropdownRef = useRef(null);
 
     // Close dropdown when clicking outside
@@ -48,6 +53,24 @@ const Topbar = ({ onMenuClick }) => {
         } catch (err) {
             console.error(err);
         }
+    };
+
+    const handleNotificationClick = (notif) => {
+        if (!notif.read) {
+            markAsRead(notif.id);
+        }
+
+        let displayData = notif;
+        if (notif.referenceId) {
+            const foundAnn = announcements.find(a => a.id === notif.referenceId);
+            if (foundAnn) {
+                displayData = foundAnn;
+            }
+        }
+
+        setSelectedAnn(displayData);
+        setShowAnnModal(true);
+        setShowNotifications(false);
     };
 
     return (
@@ -102,9 +125,13 @@ const Topbar = ({ onMenuClick }) => {
                                 </button>
                             </div>
                             <div className="max-h-[400px] overflow-y-auto">
-                                {notifications.length > 0 ? (
-                                    notifications.map((notif) => (
-                                        <div key={notif.id} className={`px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-50 dark:border-gray-700 last:border-0 group flex justify-between gap-2 ${!notif.read ? 'bg-purple-50/50 dark:bg-purple-900/10' : ''}`}>
+                                {notifications.filter(n => !n.read).length > 0 ? (
+                                    notifications.filter(n => !n.read).slice(0, 5).map((notif) => (
+                                        <div
+                                            key={notif.id}
+                                            onClick={() => handleNotificationClick(notif)}
+                                            className={`px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-50 dark:border-gray-700 last:border-0 group flex justify-between gap-2 cursor-pointer ${!notif.read ? 'bg-purple-50/50 dark:bg-purple-900/10' : ''}`}
+                                        >
                                             <div>
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <h4 className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-[#8b5cf6] transition-colors">{notif.title}</h4>
@@ -127,9 +154,13 @@ const Topbar = ({ onMenuClick }) => {
                             </div>
                             {notifications.length > 0 && (
                                 <div className="px-6 pt-4 border-t border-gray-50 dark:border-gray-700">
-                                    <button className="w-full py-2.5 text-xs font-bold text-[#8b5cf6] bg-[#8b5cf6]/5 hover:bg-[#8b5cf6]/10 rounded-xl transition-all">
-                                        View All
-                                    </button>
+                                    <Link
+                                        to="/student/notifications"
+                                        onClick={() => setShowNotifications(false)}
+                                        className="block w-full py-2.5 text-xs font-bold text-center text-[#8b5cf6] bg-[#8b5cf6]/5 hover:bg-[#8b5cf6]/10 rounded-xl transition-all"
+                                    >
+                                        View All History
+                                    </Link>
                                 </div>
                             )}
                         </div>
@@ -151,6 +182,12 @@ const Topbar = ({ onMenuClick }) => {
                     </div>
                 </Link>
             </div>
+
+            <AnnouncementDetailModal
+                isOpen={showAnnModal}
+                onClose={() => setShowAnnModal(false)}
+                announcement={selectedAnn}
+            />
         </header>
     );
 };

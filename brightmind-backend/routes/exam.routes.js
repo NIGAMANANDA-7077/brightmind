@@ -1,50 +1,47 @@
 const express = require('express');
 const router = express.Router();
-const examController = require('../controllers/examController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 
-// @route   GET /api/exams
-// @desc    Get all exams
-router.get('/', examController.getAllExams);
+const examController = require('../controllers/examController');
+const examAttemptController = require('../controllers/examAttemptController');
+const examResultController = require('../controllers/examResultController');
 
-// @route   GET /api/exams/teacher/:teacherId
-// @desc    Get exams for a specific teacher
-router.get('/teacher/:teacherId', protect, authorize('Teacher', 'Admin'), examController.getTeacherExams);
+// ==========================================
+// 👨‍🏫 TEACHER / ADMIN ROUTES
+// ==========================================
+router.post('/', protect, authorize('Teacher', 'Admin'), examController.createExam);
+router.get('/', protect, authorize('Teacher', 'Admin'), examController.getExams);
+router.get('/teacher', protect, authorize('Teacher', 'Admin'), examController.getTeacherExams);
+router.post('/:examId/generate', protect, authorize('Teacher', 'Admin'), examController.generateRandomPaper);
+router.put('/:id', protect, authorize('Teacher', 'Admin'), examController.updateExam);
+router.delete('/:id', protect, authorize('Teacher', 'Admin'), examController.deleteExam);
 
-// @route   POST /api/exams
-// @desc    Teacher uploads new exam questions
-router.post('/', examController.createExam);
+// Grading & Submissions
+router.get('/:examId/submissions', protect, authorize('Teacher', 'Admin'), examResultController.getTeacherExamSubmissions);
+router.post('/attempt/:attemptId/grade', protect, authorize('Teacher', 'Admin'), examResultController.gradeSubjectiveAnswer);
+router.post('/:examId/publish', protect, authorize('Teacher', 'Admin'), examResultController.publishResults);
+router.get('/results/all', protect, authorize('Teacher', 'Admin'), examResultController.getAllResults);
 
-// @route   GET /api/exams/:id
-// @desc    Get a single exam
-router.get('/:id', examController.getExamById);
 
-// @route   POST /api/exams/:id/submit
-// @desc    Submit an exam and calculate score
-router.post('/:id/submit', protect, authorize('Student'), examController.submitExam);
+// ==========================================
+// 👩‍🎓 STUDENT ROUTES
+// ==========================================
+router.get('/student', protect, authorize('Student'), examController.getStudentExams);
+router.get('/results/student', protect, authorize('Student'), examResultController.getStudentResults);
 
-// @route   PUT /api/exams/:id
-// @desc    Admin reviews/approves exam or Teacher updates exam
-router.put('/:id', examController.updateExam);
+// Exam Attempt Engine
+router.post('/:examId/start', protect, authorize('Student'), examAttemptController.startExam);
+router.post('/attempt/:attemptId/answer', protect, authorize('Student'), examAttemptController.saveAnswer);
+router.post('/attempt/:attemptId/submit', protect, authorize('Student'), examAttemptController.submitExam);
+router.post('/attempt/:attemptId/flag', protect, authorize('Student'), examAttemptController.flagAttempt);
 
-// @route   DELETE /api/exams/:id
-// @desc    Delete an exam
-router.delete('/:id', examController.deleteExam);
 
-// @route   POST /api/exams/schedule
-// @desc    Schedule an exam and notify students
-router.post('/schedule', protect, authorize('Teacher', 'Admin'), examController.scheduleExam);
-
-// @route   GET /api/exams/results/teacher/:teacherId
-// @desc    Get results for all exams under a teacher
-router.get('/results/teacher/:teacherId', protect, authorize('Teacher', 'Admin'), examController.getTeacherResults);
-
-// @route   GET /api/exams/results/student
-// @desc    Get results for the logged-in student
-router.get('/results/student', protect, authorize('Student'), examController.getStudentResults);
-
-// @route   GET /api/exams/results/all
-// @desc    Get all exam results (Admin)
-router.get('/results/all', protect, authorize('Admin'), examController.getAllResults);
+// ==========================================
+// 🌍 PUBLIC / SHARED ROUTES
+// ==========================================
+// Get Exam Details (Content depends on role)
+router.get('/:id', protect, examController.getExamById);
+// Get Leaderboard
+router.get('/:examId/leaderboard', protect, examResultController.getLeaderboard);
 
 module.exports = router;

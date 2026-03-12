@@ -26,6 +26,14 @@ const Enrollment = sequelize.define('Enrollment', {
     enrolledAt: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW
+    },
+    batchId: {
+        type: DataTypes.UUID,
+        allowNull: true
+    },
+    paymentId: {
+        type: DataTypes.UUID,
+        allowNull: true
     }
 }, {
     timestamps: true,

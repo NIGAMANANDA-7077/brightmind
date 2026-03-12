@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Play, CheckCircle, ChevronLeft, ChevronRight,
-    Menu, Download, FileText, MessageSquare
+    Menu, Download, FileText, MessageSquare, Loader2, Trash2, ExternalLink, Save
 } from 'lucide-react';
 import { useCourse } from '../../context/CourseContext';
+import api from '../../utils/axiosConfig';
 
 const CoursePlayer = () => {
     const { courseId } = useParams();
@@ -15,6 +16,12 @@ const CoursePlayer = () => {
     const [activeLesson, setActiveLesson] = useState(null);
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [activeTab, setActiveTab] = useState('overview');
+
+    // Notes state
+    const [noteContent, setNoteContent] = useState('');
+    const [noteSaving, setNoteSaving] = useState(false);
+    const [noteLoading, setNoteLoading] = useState(false);
+    const [noteSaved, setNoteSaved] = useState(false);
 
     const course = getCourse(courseId);
 
@@ -38,6 +45,26 @@ const CoursePlayer = () => {
             setActiveLesson(firstIncomplete || firstLesson);
         }
     }, [course, activeLesson]);
+
+    // Fetch saved note when active lesson changes
+    useEffect(() => {
+        if (!activeLesson?.id) return;
+        setNoteContent('');
+        setNoteSaved(false);
+        const fetchNote = async () => {
+            setNoteLoading(true);
+            try {
+                const res = await api.get(`/notes/${activeLesson.id}`);
+                setNoteContent(res.data.content || '');
+            } catch (err) {
+                // No note found is fine
+                setNoteContent('');
+            } finally {
+                setNoteLoading(false);
+            }
+        };
+        fetchNote();
+    }, [activeLesson?.id]);
 
     if (!course) return null;
 
@@ -104,15 +131,44 @@ const CoursePlayer = () => {
                     {/* Player Container */}
                     <div className="aspect-video bg-black relative">
                         {activeLesson ? (
-                            <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
-                                {/* Mock Player UI */}
-                                <div className="text-center">
-                                    <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 group cursor-pointer hover:bg-[#8b5cf6] transition-colors">
-                                        <Play size={32} className="ml-1 text-white" fill="currentColor" />
+                            <div className="absolute inset-0">
+                                {activeLesson.type === 'video' && activeLesson.videoUrl ? (
+                                    <iframe
+                                        src={(() => {
+                                            let url = activeLesson.videoUrl;
+                                            // Convert watch URLs to embed format
+                                            if (url.includes('watch?v=')) {
+                                                url = url.replace('watch?v=', 'embed/');
+                                            }
+                                            // Convert youtu.be short links to embed format
+                                            if (url.includes('youtu.be/')) {
+                                                url = url.replace('youtu.be/', 'youtube.com/embed/');
+                                            }
+                                            // Strip ALL query params from embed URLs to prevent refusal
+                                            if (url.includes('youtube.com/embed')) {
+                                                url = url.split('?')[0].split('&')[0];
+                                            }
+                                            return url;
+                                        })()}
+                                        title={activeLesson.title}
+                                        className="w-full h-full border-0"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                        allowFullScreen
+                                    ></iframe>
+                                ) : (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+                                        <div className="text-center">
+                                            <div className="p-4 bg-gray-800 rounded-2xl mb-4">
+                                                <FileText size={48} className="text-[#8b5cf6] mx-auto" />
+                                            </div>
+                                            <p className="font-bold text-lg mb-2">{activeLesson.title}</p>
+                                            <p className="text-gray-500 text-sm">Document / Text Lesson</p>
+                                            <button className="mt-4 px-6 py-2 bg-[#8b5cf6] rounded-xl text-sm font-bold">
+                                                View Resources
+                                            </button>
+                                        </div>
                                     </div>
-                                    <p className="font-bold text-lg mb-2">Now Playing: {activeLesson.title}</p>
-                                    <p className="text-gray-500 text-sm">Video Mock Player</p>
-                                </div>
+                                )}
                             </div>
                         ) : (
                             <div className="flex items-center justify-center h-full text-gray-500">
@@ -185,53 +241,106 @@ const CoursePlayer = () => {
 
                             <div className="min-h-[200px]">
                                 {activeTab === 'overview' && (
-                                    <div className="space-y-4 text-gray-400 leading-relaxed">
-                                        <p>In this lesson, we will cover the fundamental concepts of {activeLesson?.title}. Make sure to take notes and complete the exercises.</p>
-                                        <p>Key takeaways:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li>Understanding the core principles</li>
-                                            <li>Best practices and common pitfalls</li>
-                                            <li>Real-world application examples</li>
-                                        </ul>
+                                    <div className="space-y-4 text-gray-400 leading-relaxed whitespace-pre-wrap">
+                                        {activeLesson?.description ? (
+                                            activeLesson.description
+                                        ) : (
+                                            <p className="italic text-gray-500">No description provided for this lesson.</p>
+                                        )}
                                     </div>
                                 )}
                                 {activeTab === 'resources' && (
                                     <div className="space-y-3">
-                                        <div className="flex items-center justify-between p-4 bg-gray-800 rounded-xl border border-gray-700">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-blue-500/10 text-blue-400 rounded-lg">
-                                                    <FileText size={20} />
+                                        {activeLesson?.fileUrl ? (
+                                            <a
+                                                href={activeLesson.fileUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center justify-between p-4 bg-gray-800 rounded-xl border border-gray-700 hover:border-[#8b5cf6] transition-colors group"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 bg-blue-500/10 text-blue-400 rounded-lg">
+                                                        <FileText size={20} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-sm text-gray-200 group-hover:text-white transition-colors">
+                                                            Lesson Resource
+                                                        </p>
+                                                        <p className="text-xs text-gray-500 truncate max-w-xs">
+                                                            {activeLesson.fileUrl.split('/').pop()}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <p className="font-bold text-sm text-gray-200">Lesson Slides</p>
-                                                    <p className="text-xs text-gray-500">PDF • 2.4 MB</p>
-                                                </div>
+                                                <ExternalLink size={18} className="text-gray-500 group-hover:text-[#8b5cf6] transition-colors" />
+                                            </a>
+                                        ) : (
+                                            <div className="text-center py-10 bg-gray-800/50 rounded-xl border border-dashed border-gray-700">
+                                                <FileText size={36} className="mx-auto mb-3 text-gray-600" />
+                                                <p className="text-gray-500 font-medium text-sm">No resources available for this lesson.</p>
                                             </div>
-                                            <button className="text-gray-400 hover:text-white"><Download size={20} /></button>
-                                        </div>
-                                        <div className="flex items-center justify-between p-4 bg-gray-800 rounded-xl border border-gray-700">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-yellow-500/10 text-yellow-400 rounded-lg">
-                                                    <FileText size={20} />
-                                                </div>
-                                                <div>
-                                                    <p className="font-bold text-sm text-gray-200">Source Code</p>
-                                                    <p className="text-xs text-gray-500">ZIP • 1.2 MB</p>
-                                                </div>
-                                            </div>
-                                            <button className="text-gray-400 hover:text-white"><Download size={20} /></button>
-                                        </div>
+                                        )}
                                     </div>
                                 )}
                                 {activeTab === 'notes' && (
-                                    <div>
-                                        <textarea
-                                            placeholder="Type your notes here..."
-                                            className="w-full h-40 bg-gray-800 border border-gray-700 rounded-xl p-4 text-gray-300 focus:outline-none focus:border-[#8b5cf6] placeholder-gray-600 resize-none transition-colors"
-                                        ></textarea>
-                                        <button className="mt-4 px-6 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm font-bold rounded-lg transition-colors">
-                                            Save Note
-                                        </button>
+                                    <div className="space-y-4">
+                                        {noteLoading ? (
+                                            <div className="flex items-center justify-center py-10">
+                                                <Loader2 className="animate-spin text-[#8b5cf6]" size={28} />
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <textarea
+                                                    value={noteContent}
+                                                    onChange={(e) => { setNoteContent(e.target.value); setNoteSaved(false); }}
+                                                    placeholder="Type your notes for this lesson here..."
+                                                    className="w-full h-48 bg-gray-800 border border-gray-700 rounded-xl p-4 text-gray-300 focus:outline-none focus:border-[#8b5cf6] placeholder-gray-600 resize-none transition-colors text-sm leading-relaxed"
+                                                ></textarea>
+                                                <div className="flex items-center gap-3">
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (!activeLesson) return;
+                                                            setNoteSaving(true);
+                                                            try {
+                                                                await api.post(`/notes/${activeLesson.id}`, { content: noteContent });
+                                                                setNoteSaved(true);
+                                                                setTimeout(() => setNoteSaved(false), 3000);
+                                                            } catch (err) {
+                                                                console.error('Failed to save note:', err);
+                                                            } finally {
+                                                                setNoteSaving(false);
+                                                            }
+                                                        }}
+                                                        disabled={noteSaving}
+                                                        className="flex items-center gap-2 px-5 py-2.5 bg-[#8b5cf6] hover:bg-[#7c3aed] text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-50"
+                                                    >
+                                                        {noteSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                                        {noteSaving ? 'Saving...' : 'Save Note'}
+                                                    </button>
+                                                    {noteContent && (
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (!activeLesson) return;
+                                                                try {
+                                                                    await api.delete(`/notes/${activeLesson.id}`);
+                                                                    setNoteContent('');
+                                                                } catch (err) {
+                                                                    console.error('Failed to delete note:', err);
+                                                                }
+                                                            }}
+                                                            className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 hover:bg-red-500/20 text-gray-400 hover:text-red-400 text-sm font-bold rounded-xl transition-colors border border-gray-700"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                            Clear
+                                                        </button>
+                                                    )}
+                                                    {noteSaved && (
+                                                        <span className="flex items-center gap-1 text-green-400 text-xs font-bold animate-pulse">
+                                                            <CheckCircle size={14} /> Saved!
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 )}
                             </div>

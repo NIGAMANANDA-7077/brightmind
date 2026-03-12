@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
 import { ChevronLeft, Check, Layout, List, Upload, Save } from 'lucide-react';
 import StepBasicInfo from '../components/courses/StepBasicInfo';
-import StepCurriculum from '../components/courses/StepCurriculum';
 import StepPublish from '../components/courses/StepPublish';
 import { useAdminCourses } from '../context/AdminCourseContext';
+import api from '../../utils/axiosConfig';
 
 const CourseCreate = () => {
     const navigate = useNavigate();
@@ -15,7 +15,6 @@ const CourseCreate = () => {
     const [currentStep, setCurrentStep] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Initial State
     const [courseData, setCourseData] = useState({
         title: '',
         subtitle: '',
@@ -24,8 +23,24 @@ const CourseCreate = () => {
         price: '',
         description: '',
         thumbnail: '',
+        teacherId: '',
         modules: []
     });
+
+    const [teachers, setTeachers] = useState([]);
+
+    useEffect(() => {
+        const fetchTeachers = async () => {
+            try {
+                const res = await api.get('/users');
+                const teacherUsers = res.data.filter(u => u.role === 'Teacher');
+                setTeachers(teacherUsers);
+            } catch (err) {
+                console.error("Failed to fetch teachers", err);
+            }
+        };
+        fetchTeachers();
+    }, []);
 
     // Load existing data if in Edit Mode
     useEffect(() => {
@@ -42,8 +57,7 @@ const CourseCreate = () => {
 
     const steps = [
         { id: 1, title: 'Basic Info', icon: Layout },
-        { id: 2, title: 'Curriculum', icon: List },
-        { id: 3, title: 'Publish', icon: Upload },
+        { id: 2, title: 'Publish', icon: Upload },
     ];
 
     // Validation Logic
@@ -59,7 +73,7 @@ const CourseCreate = () => {
 
     const handleNext = () => {
         if (validateStep(currentStep)) {
-            setCurrentStep(prev => Math.min(prev + 1, 3));
+            setCurrentStep(prev => Math.min(prev + 1, 2));
         }
     };
 
@@ -145,12 +159,9 @@ const CourseCreate = () => {
             {/* Step Content */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 min-h-[500px]">
                 {currentStep === 1 && (
-                    <StepBasicInfo data={courseData} updateData={setCourseData} />
+                    <StepBasicInfo data={courseData} updateData={setCourseData} teachers={teachers} />
                 )}
                 {currentStep === 2 && (
-                    <StepCurriculum data={courseData} updateData={setCourseData} />
-                )}
-                {currentStep === 3 && (
                     <StepPublish data={courseData} updateData={setCourseData} />
                 )}
             </div>
@@ -166,7 +177,7 @@ const CourseCreate = () => {
                     Previous
                 </button>
 
-                {currentStep < 3 ? (
+                {currentStep < 2 ? (
                     <button
                         onClick={handleNext}
                         className="px-8 py-2.5 bg-[#8b5cf6] text-white rounded-xl font-bold hover:bg-[#7c3aed] transition-all shadow-lg shadow-purple-500/20"

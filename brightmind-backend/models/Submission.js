@@ -8,15 +8,27 @@ const Submission = sequelize.define('Submission', {
         primaryKey: true
     },
     assignmentId: {
-        type: DataTypes.STRING,
+        type: DataTypes.UUID,
         allowNull: false
     },
     studentId: {
-        type: DataTypes.STRING,
+        type: DataTypes.UUID,
         allowNull: false
     },
     studentName: {
         type: DataTypes.STRING,
+        allowNull: true
+    },
+    studentBatch: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    fileUrl: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    content: {
+        type: DataTypes.TEXT,
         allowNull: true
     },
     status: {

@@ -28,44 +28,40 @@ export const AssignmentProvider = ({ children }) => {
         return assignments.find(a => a.id === id);
     };
 
-    const _updateBackend = async (id, payload) => {
+    const submitAssignment = async (assignmentId, submissionData) => {
         try {
-            // we will use PUT /api/assignments/:id when implemented, 
-            // for now, we will assume a generic endpoint handles it
-            await api.put(`/assignments/${id}`, payload);
+            const res = await api.post(`/assignments/${assignmentId}/submit`, {
+                assignmentId,
+                ...submissionData
+            });
+
+            // Update local state
+            setAssignments(prev => prev.map(a =>
+                a.id === assignmentId ? {
+                    ...a,
+                    status: res.data.status,
+                    submissionDate: res.data.submittedAt,
+                    studentSubmission: res.data
+                } : a
+            ));
+
+            return res.data;
         } catch (err) {
-            console.error("Failed to update assignment status in backend", err);
+            console.error("Failed to submit assignment:", err);
+            throw err;
         }
     };
 
     const submitFileAssignment = (id, fileName) => {
-        const updated = {
-            status: 'Submitted',
-            submittedDate: new Date().toLocaleDateString(),
-            submission: { file: fileName }
-        };
-        setAssignments(assignments.map(a => a.id === id ? { ...a, ...updated } : a));
-        _updateBackend(id, updated);
+        return submitAssignment(id, { fileName });
     };
 
     const submitWrittenAssignment = (id, content) => {
-        const updated = {
-            status: 'Submitted',
-            submittedDate: new Date().toLocaleDateString(),
-            submission: { content }
-        };
-        setAssignments(assignments.map(a => a.id === id ? { ...a, ...updated } : a));
-        _updateBackend(id, updated);
+        return submitAssignment(id, { content });
     };
 
     const submitOMR = (id, answers, score) => {
-        const updated = {
-            status: 'Graded',
-            submittedDate: new Date().toLocaleDateString(),
-            submission: { answers, score }
-        };
-        setAssignments(assignments.map(a => a.id === id ? { ...a, ...updated } : a));
-        _updateBackend(id, updated);
+        return submitAssignment(id, { answers, grade: score, status: 'Graded' });
     };
 
     return (

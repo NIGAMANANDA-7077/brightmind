@@ -42,6 +42,10 @@ const Assignment = sequelize.define('Assignment', {
     questions: {
         type: DataTypes.JSON,
         defaultValue: []
+    },
+    batchId: {
+        type: DataTypes.UUID,
+        allowNull: true
     }
 }, {
     timestamps: true

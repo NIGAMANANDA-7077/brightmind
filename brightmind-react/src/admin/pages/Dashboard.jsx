@@ -119,7 +119,7 @@ const Dashboard = () => {
             const [userStats, courseRes, examRes, activityRes, analyticsRes] = await Promise.all([
                 api.get('/users/stats'),
                 api.get('/courses'),
-                api.get('/exams'),
+                api.get('/exams/teacher'),
                 api.get('/activities'),
                 api.get('/users/analytics/monthly')
             ]);
@@ -132,7 +132,8 @@ const Dashboard = () => {
 
             // Map Exams to Upcoming
             const now = new Date();
-            const upcoming = examRes.data
+            const examList = examRes.data.exams || [];
+            const upcoming = examList
                 .filter(e => e.scheduledAt && new Date(e.scheduledAt) > now)
                 .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt))
                 .slice(0, 3);
@@ -162,7 +163,7 @@ const Dashboard = () => {
                     link: '/admin/courses'
                 },
                 {
-                    value: examRes.data.length,
+                    value: examList.length,
                     title: 'Total Exams',
                     change: 'Real-time',
                     trend: 'neutral',

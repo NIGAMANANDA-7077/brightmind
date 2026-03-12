@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Search, Filter, Plus, MessageSquare } from 'lucide-react';
 import { useForum } from '../../context/ForumContext';
 import { useCourse } from '../../context/CourseContext';
+import { useUser } from '../../context/UserContext';
 import ThreadCard from '../../components/student/forum/ThreadCard';
 import AskQuestionModal from '../../components/student/forum/AskQuestionModal';
 
 const ForumHome = () => {
     const { threads, addThread } = useForum();
     const { courses } = useCourse(); // For modal course dropdown
+    const { user } = useUser();
     const [searchQuery, setSearchQuery] = useState('');
     const [filter, setFilter] = useState('All');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -18,9 +20,9 @@ const ForumHome = () => {
         const matchesSearch = thread.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             thread.description.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesFilter = filter === 'All' ||
+            (filter === 'My Questions' && thread.authorId === user?.id) ||
             (filter === 'Solved' && thread.status === 'Solved') ||
-            (filter === 'Unanswered' && thread.replies.length === 0) ||
-            (filter === 'My Questions' && thread.author.role === 'Me'); // Mock auth check
+            (filter === 'Unanswered' && (thread.repliesCount || 0) === 0);
         return matchesSearch && matchesFilter;
     });
 
@@ -61,8 +63,8 @@ const ForumHome = () => {
                             key={f}
                             onClick={() => setFilter(f)}
                             className={`px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all border ${filter === f
-                                    ? 'bg-gray-900 text-white border-gray-900'
-                                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                                ? 'bg-gray-900 text-white border-gray-900'
+                                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                                 }`}
                         >
                             {f}

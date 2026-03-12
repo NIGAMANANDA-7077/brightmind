@@ -14,6 +14,9 @@ router.get('/analytics/monthly', userController.getMonthlyAnalytics);
 // Teacher Dashboard Stats
 router.get('/teacher/:teacherId/stats', userController.getTeacherDashboardStats);
 
+// Teacher's enrolled students
+router.get('/teacher/:teacherId/students', userController.getTeacherStudents);
+
 // Recent Activity
 router.get('/activity', userController.getRecentActivity);
 

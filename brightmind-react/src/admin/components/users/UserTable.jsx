@@ -73,7 +73,15 @@ const UserTable = ({ users, roleFilter, onStatusChange, onDelete, selectedIds = 
                                     </span>
                                 </td>
                                 <td className="py-4 px-6">
-                                    {user.batch ? (
+                                    {user.enrolledBatches && user.enrolledBatches.length > 0 ? (
+                                        <div className="flex flex-wrap gap-1">
+                                            {user.enrolledBatches.map(b => (
+                                                <span key={b.id} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-purple-50 text-purple-700 border border-purple-100">
+                                                    {b.batchName || b.name}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    ) : user.batch ? (
                                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-purple-50 text-purple-700 border border-purple-100">
                                             {user.batch}
                                         </span>

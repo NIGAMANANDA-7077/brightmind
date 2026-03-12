@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Navigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 import { TeacherProvider } from '../context/TeacherContext';
+import { useUser } from '../../context/UserContext';
 
 // =========================================================
 // TeacherLayout — mirrors AdminLayout pattern
@@ -10,6 +11,12 @@ import { TeacherProvider } from '../context/TeacherContext';
 
 const TeacherLayout = () => {
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+    const { user, loading } = useUser();
+
+    if (loading) return null;
+    if (!user || user.role !== 'Teacher') {
+        return <Navigate to="/login" replace />;
+    }
 
     return (
         <TeacherProvider>

@@ -8,21 +8,46 @@ const ThreadDetail = () => {
     const { threadId } = useParams();
     const navigate = useNavigate();
     const { getThread, addReply, upvoteThread } = useForum();
+    const [thread, setThread] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [replyContent, setReplyContent] = useState('');
 
-    const thread = getThread(threadId);
-
-    if (!thread) return <div className="p-8">Thread not found</div>;
-
-    const handleVote = () => {
-        upvoteThread(threadId);
+    const fetchThreadDetail = async (showLoading = true) => {
+        if (showLoading) setLoading(true);
+        const data = await getThread(threadId);
+        setThread(data);
+        if (showLoading) setLoading(false);
     };
 
-    const handleSubmitReply = (e) => {
+    React.useEffect(() => {
+        fetchThreadDetail(true);
+
+        // Real-time polling (every 10 seconds)
+        const interval = setInterval(() => {
+            fetchThreadDetail(false);
+        }, 10000);
+
+        return () => clearInterval(interval);
+    }, [threadId]);
+
+    if (loading) return <div className="p-8">Loading discussion...</div>;
+    if (!thread) return <div className="p-8">Thread not found</div>;
+
+    const handleVote = async () => {
+        const result = await upvoteThread(threadId);
+        if (result.success) {
+            setThread(prev => ({ ...prev, upvotes: result.upvotes }));
+        } else if (result.message.includes('already upvoted')) {
+            alert("You have already upvoted this discussion!");
+        }
+    };
+
+    const handleSubmitReply = async (e) => {
         e.preventDefault();
         if (replyContent.trim()) {
-            addReply(threadId, replyContent);
+            await addReply(threadId, replyContent);
             setReplyContent('');
+            fetchThreadDetail(); // Refresh to show new comment
         }
     };
 
@@ -60,10 +85,10 @@ const ThreadDetail = () => {
 
                     {/* Author */}
                     <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
-                        <img src={thread.author.avatar} alt={thread.author.name} className="w-10 h-10 rounded-full" />
+                        <img src={thread.authorAvatar} alt={thread.authorName} className="w-10 h-10 rounded-full" />
                         <div>
-                            <div className="font-bold text-gray-900">{thread.author.name}</div>
-                            <div className="text-xs text-gray-500">{thread.author.role}</div>
+                            <div className="font-bold text-gray-900">{thread.authorName}</div>
+                            <div className="text-xs text-gray-500">{thread.authorRole}</div>
                         </div>
                     </div>
 
@@ -74,7 +99,7 @@ const ThreadDetail = () => {
 
                     {/* Tags */}
                     <div className="flex items-center gap-2 mb-8">
-                        {thread.tags.map(tag => (
+                        {thread.tags && thread.tags.map(tag => (
                             <span key={tag} className="text-sm font-medium text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
                                 #{tag}
                             </span>
@@ -93,7 +118,7 @@ const ThreadDetail = () => {
                             </button>
                             <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-gray-500 font-bold hover:bg-gray-50 transition-colors">
                                 <MessageSquare size={18} />
-                                <span>{thread.replies.length} Replies</span>
+                                <span>{(thread.comments || []).length} Replies</span>
                             </button>
                         </div>
                         <button className="p-2 text-gray-400 hover:text-gray-900 transition-colors">
@@ -106,11 +131,11 @@ const ThreadDetail = () => {
             {/* Replies Section */}
             <div className="space-y-6">
                 <div className="flex items-center justify-between px-4">
-                    <h2 className="text-lg font-bold text-gray-900">{thread.replies.length} Replies</h2>
+                    <h2 className="text-lg font-bold text-gray-900">{(thread.comments || []).length} Replies</h2>
                 </div>
 
                 <div className="space-y-4">
-                    {thread.replies.map(reply => (
+                    {(thread.comments || []).map(reply => (
                         <ReplyCard key={reply.id} reply={reply} />
                     ))}
                 </div>

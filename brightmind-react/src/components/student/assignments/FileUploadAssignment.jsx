@@ -41,7 +41,7 @@ const FileUploadAssignment = ({ assignment, onSubmit }) => {
                     <CheckCircle size={32} />
                 </div>
                 <h3 className="text-xl font-bold text-green-900 mb-2">Submitted Successfully</h3>
-                <p className="text-green-700 mb-6">You submitted <span className="font-bold">{assignment.submission.file}</span> on {assignment.submittedDate}</p>
+                <p className="text-green-700 mb-6">You submitted <span className="font-bold">{assignment.studentSubmission?.fileUrl || 'your file'}</span> on {new Date(assignment.submissionDate).toLocaleDateString()}</p>
             </div>
         );
     }

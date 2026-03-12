@@ -1,9 +1,19 @@
 import React from 'react';
 import { MessageSquare, ArrowUp, Eye, Clock, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useForum } from '../../../context/ForumContext';
 
 const ThreadCard = ({ thread }) => {
     const navigate = useNavigate();
+    const { upvoteThread } = useForum();
+
+    const handleVote = async (e) => {
+        e.stopPropagation();
+        const result = await upvoteThread(thread.id);
+        if (!result.success && result.message.includes('already upvoted')) {
+            alert("You have already upvoted this discussion!");
+        }
+    };
 
     return (
         <div
@@ -13,7 +23,10 @@ const ThreadCard = ({ thread }) => {
             <div className="flex gap-4">
                 {/* Vote Count (Left side) */}
                 <div className="flex flex-col items-center gap-1 min-w-[3rem]">
-                    <button className="p-2 rounded-xl bg-gray-50 text-gray-400 group-hover:bg-[#8b5cf6]/10 group-hover:text-[#8b5cf6] transition-colors">
+                    <button
+                        onClick={handleVote}
+                        className="p-2 rounded-xl bg-gray-50 text-gray-400 hover:bg-[#8b5cf6]/10 hover:text-[#8b5cf6] transition-colors"
+                    >
                         <ArrowUp size={20} />
                     </button>
                     <span className="font-bold text-gray-700 text-sm">{thread.upvotes}</span>
@@ -46,8 +59,8 @@ const ThreadCard = ({ thread }) => {
                     </p>
 
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            {thread.tags.map(tag => (
+                        <div className="flex items-center gap-2 mb-4">
+                            {thread.tags && thread.tags.map(tag => (
                                 <span key={tag} className="text-xs font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
                                     #{tag}
                                 </span>
@@ -56,14 +69,14 @@ const ThreadCard = ({ thread }) => {
 
                         <div className="flex items-center gap-4 text-xs font-bold text-gray-400">
                             <div className="flex items-center gap-1.5 flex-row-reverse">
-                                <span className="text-gray-600">{thread.author.name}</span>
-                                <img src={thread.author.avatar} alt={thread.author.name} className="w-5 h-5 rounded-full" />
+                                <span className="text-gray-600">{thread.authorName}</span>
+                                <img src={thread.authorAvatar} alt={thread.authorName} className="w-5 h-5 rounded-full" />
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <Eye size={14} /> {thread.views}
                             </div>
                             <div className="flex items-center gap-1.5 text-[#8b5cf6] bg-[#8b5cf6]/5 px-2 py-1 rounded-lg">
-                                <MessageSquare size={14} /> {thread.replies.length} replies
+                                <MessageSquare size={14} /> {thread.repliesCount || 0} replies
                             </div>
                         </div>
                     </div>

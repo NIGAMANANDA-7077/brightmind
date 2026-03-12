@@ -19,6 +19,10 @@ const Notification = sequelize.define('Notification', {
         type: DataTypes.ENUM('info', 'success', 'warning', 'error'),
         defaultValue: 'info'
     },
+    batchId: {
+        type: DataTypes.UUID,
+        allowNull: true
+    },
     role: {
         type: DataTypes.ENUM('Admin', 'Teacher', 'Student', 'All'),
         defaultValue: 'All'
@@ -26,6 +30,10 @@ const Notification = sequelize.define('Notification', {
     read: {
         type: DataTypes.BOOLEAN,
         defaultValue: false
+    },
+    referenceId: {
+        type: DataTypes.STRING,
+        allowNull: true
     }
 }, {
     timestamps: true

@@ -32,7 +32,9 @@ const ExploreCourseCard = ({ course }) => {
 
             <div className="p-6 flex flex-col flex-1">
                 <div className="flex items-center gap-2 mb-3">
-                    {/* <img src={course.instructor.avatar} alt={course.instructor.name} className="w-6 h-6 rounded-full border border-gray-100" /> */}
+                    {course.instructorAvatar && (
+                        <img src={course.instructorAvatar} alt={course.instructor} className="w-6 h-6 rounded-full border border-gray-100 object-cover" />
+                    )}
                     <span className="text-xs font-medium text-gray-500">{course.instructor}</span>
                 </div>
 

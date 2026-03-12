@@ -14,7 +14,11 @@ import {
     GraduationCap,
     Video,
     FileQuestion,
+    MessageSquare,
+    Layers,
+    Database,
 } from 'lucide-react';
+
 
 // =========================================================
 // Teacher Sidebar — mirrors Admin Sidebar pattern
@@ -26,7 +30,10 @@ const navItems = [
     { to: '/teacher/assignments', icon: ClipboardList, label: 'Assignments' },
     { to: '/teacher/students', icon: Users, label: 'Students' },
     { to: '/teacher/live', icon: Video, label: 'Live Classes' },
+    { to: '/teacher/batches', icon: Layers, label: 'My Batches' },
     { to: '/teacher/announcements', icon: Megaphone, label: 'Announcements' },
+    { to: '/teacher/forum', icon: MessageSquare, label: 'Forum' },
+    { to: '/teacher/questions', icon: Database, label: 'Question Bank' },
     { to: '/teacher/exams', icon: FileQuestion, label: 'Exams' },
     { to: '/teacher/profile', icon: UserCircle, label: 'Profile' },
 ];

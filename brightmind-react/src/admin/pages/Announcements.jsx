@@ -3,13 +3,14 @@ import { useAdminGlobal } from '../context/AdminGlobalContext';
 import { Bell, Calendar, Send, Trash2, Megaphone, Check, X, Eye, Edit2, Filter } from 'lucide-react';
 
 const Announcements = () => {
-    const { announcements, announcementActions } = useAdminGlobal();
+    const { announcements, announcementActions, batches } = useAdminGlobal();
 
     // Form and UI State
     const [formData, setFormData] = useState({
         title: '',
         message: '',
         audience: 'All',
+        batchId: '',
         date: '',
         status: 'Published' // Will be calculated on submit
     });
@@ -29,9 +30,9 @@ const Announcements = () => {
         const checkSchedule = setInterval(() => {
             const now = new Date().toISOString().split('T')[0];
             announcements.forEach(a => {
-                if (a.status === 'Scheduled' && a.date <= now) {
+                if (a.status === 'Scheduled' && (a.date || a.createdAt?.split('T')[0]) <= now) {
                     announcementActions.updateAnnouncement(a.id, { status: 'Published' });
-                    showToast(`Auto-published: ${a.title}`);
+                    // showToast(`Auto-published: ${a.title}`);
                 }
             });
         }, 5000); // Check every 5 seconds for demo purposes
@@ -53,8 +54,10 @@ const Announcements = () => {
         const scheduleDate = formData.date || today;
         const status = scheduleDate > today ? 'Scheduled' : 'Published';
 
+        // Admins default to global if batchId isn't specified
         const finalData = {
             ...formData,
+            batchId: formData.batchId || null,
             date: scheduleDate,
             status: status
         };
@@ -69,7 +72,7 @@ const Announcements = () => {
         }
 
         // Reset
-        setFormData({ title: '', message: '', audience: 'All', date: '', status: 'Published' });
+        setFormData({ title: '', message: '', audience: 'All', batchId: '', date: '', status: 'Published' });
     };
 
     const handleEdit = (announcement) => {
@@ -77,8 +80,9 @@ const Announcements = () => {
             title: announcement.title,
             message: announcement.message,
             audience: announcement.audience,
-            date: announcement.date,
-            status: announcement.status
+            batchId: announcement.batchId || '',
+            date: announcement.date || '',
+            status: announcement.status || 'Published'
         });
         setIsEditing(announcement.id);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -96,13 +100,17 @@ const Announcements = () => {
     const sortedAnnouncements = [...announcements].sort((a, b) => {
         // Published first, then Scheduled, then Draft
         const rank = { 'Published': 1, 'Scheduled': 2, 'Draft': 3 };
-        return rank[a.status] - rank[b.status];
+        const statusA = a.status || 'Published';
+        const statusB = b.status || 'Published';
+        return rank[statusA] - rank[statusB];
     });
 
     const filteredAnnouncements = sortedAnnouncements.filter(a => {
-        const matchStatus = filterStatus === 'All' || a.status === filterStatus;
+        const announcementStatus = a.status || 'Published';
+        const matchStatus = filterStatus === 'All' || announcementStatus === filterStatus;
         const matchAudience = filterAudience === 'All' || a.audience === filterAudience;
-        return matchStatus && matchAudience;
+        const matchBatch = filterAudience === 'BatchSpecific' ? a.batchId != null : true;
+        return matchStatus && matchAudience && matchBatch;
     });
 
     return (
@@ -140,7 +148,7 @@ const Announcements = () => {
                         </div>
                         <div className="p-8">
                             <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-[#8b5cf6]/10 text-[#8b5cf6] mb-4">
-                                {formData.audience}
+                                {formData.batchId ? `Batch: ${batches.find(b => b.id === formData.batchId)?.batchName}` : formData.audience}
                             </span>
                             <h2 className="text-2xl font-bold text-gray-900 mb-4">{formData.title || "Untitled Announcement"}</h2>
                             <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{formData.message || "No content..."}</p>
@@ -158,7 +166,7 @@ const Announcements = () => {
             <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Announcements</h1>
-                    <p className="text-gray-500">Broadcast messages to students and teachers</p>
+                    <p className="text-gray-500">Broadcast messages globally or to specific batches</p>
                 </div>
 
                 {/* Filters */}
@@ -179,8 +187,9 @@ const Announcements = () => {
                         onChange={(e) => setFilterAudience(e.target.value)}
                     >
                         <option value="All">All Audiences</option>
-                        <option value="Students">Students</option>
-                        <option value="Teachers">Teachers</option>
+                        <option value="Students">Students Only</option>
+                        <option value="Teachers">Teachers Only</option>
+                        <option value="BatchSpecific">Batch Specific</option>
                     </select>
                 </div>
             </div>
@@ -223,9 +232,9 @@ const Announcements = () => {
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 mb-1">Audience</label>
                                     <select
-                                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all"
+                                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all text-sm"
                                         value={formData.audience}
-                                        onChange={(e) => setFormData({ ...formData, audience: e.target.value })}
+                                        onChange={(e) => setFormData({ ...formData, audience: e.target.value, batchId: '' })}
                                     >
                                         <option value="All">All Users</option>
                                         <option value="Students">Students Only</option>
@@ -233,15 +242,30 @@ const Announcements = () => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-1">Schedule (Opt)</label>
-                                    <input
-                                        type="date"
-                                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all"
-                                        value={formData.date}
-                                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                        min={new Date().toISOString().split('T')[0]}
-                                    />
+                                    <label className="block text-xs font-bold text-gray-500 mb-1">Specific Batch (Opt)</label>
+                                    <select
+                                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all text-sm disabled:opacity-50"
+                                        value={formData.batchId}
+                                        disabled={formData.audience === 'Teachers'}
+                                        onChange={(e) => setFormData({ ...formData, batchId: e.target.value })}
+                                    >
+                                        <option value="">-- Global --</option>
+                                        {batches?.map(b => (
+                                            <option key={b.id} value={b.id}>{b.batchName}</option>
+                                        ))}
+                                    </select>
                                 </div>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mt-2 mb-1">Schedule (Opt)</label>
+                                <input
+                                    type="date"
+                                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all"
+                                    value={formData.date}
+                                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                    min={new Date().toISOString().split('T')[0]}
+                                />
                             </div>
 
                             <div className="pt-2 flex gap-2">
@@ -263,7 +287,7 @@ const Announcements = () => {
                             {isEditing && (
                                 <button
                                     type="button"
-                                    onClick={() => { setIsEditing(null); setFormData({ title: '', message: '', audience: 'All', date: '', status: 'Published' }); }}
+                                    onClick={() => { setIsEditing(null); setFormData({ title: '', message: '', audience: 'All', batchId: '', date: '', status: 'Published' }); }}
                                     className="w-full py-2 text-sm text-gray-500 hover:text-gray-700"
                                 >
                                     Cancel Editing
@@ -275,7 +299,9 @@ const Announcements = () => {
 
                 {/* Announcements List */}
                 <div className="lg:col-span-2 space-y-4">
-                    {filteredAnnouncements.map((announcement) => (
+                    {filteredAnnouncements.map((announcement) => {
+                        const isBatchSpecific = announcement.batchId || announcement.batch;
+                        return (
                         <div key={announcement.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex gap-4 group hover:shadow-md transition-shadow relative">
                             <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 
                                 ${announcement.audience === 'Students' ? 'bg-blue-50 text-blue-600' :
@@ -288,19 +314,24 @@ const Announcements = () => {
                                     <h3 className="text-lg font-bold text-gray-900 group-hover:text-[#8b5cf6] transition-colors">{announcement.title}</h3>
                                     <div className="flex items-center gap-2 text-xs">
                                         <span className={`px-2 py-1 rounded-full font-bold
-                                            ${announcement.status === 'Published' ? 'bg-green-100 text-green-700' :
+                                            ${(announcement.status || 'Published') === 'Published' ? 'bg-green-100 text-green-700' :
                                                 announcement.status === 'Scheduled' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}
                                         `}>
-                                            {announcement.status}
+                                            {announcement.status || 'Published'}
                                         </span>
                                     </div>
                                 </div>
 
                                 <div className="flex items-center gap-4 text-xs text-gray-400 mb-3">
-                                    <span className="flex items-center gap-1"><Calendar size={12} /> {announcement.date}</span>
+                                    <span className="flex items-center gap-1"><Calendar size={12} /> {new Date(announcement.createdAt || announcement.date).toLocaleDateString()}</span>
                                     <span className="flex items-center gap-1 bg-gray-50 px-2 py-0.5 rounded-lg border border-gray-100">
                                         For: {announcement.audience}
                                     </span>
+                                    {isBatchSpecific && (
+                                        <span className="px-2 py-0.5 rounded-lg border text-xs font-medium bg-[#8b5cf6]/10 text-[#8b5cf6] border-[#8b5cf6]/20">
+                                            Batch: {announcement.batch?.batchName || 'Specific Batch'}
+                                        </span>
+                                    )}
                                 </div>
 
                                 <p className="text-gray-600 text-sm leading-relaxed line-clamp-2">
@@ -326,7 +357,7 @@ const Announcements = () => {
                                 </button>
                             </div>
                         </div>
-                    ))}
+                    )})}
 
                     {filteredAnnouncements.length === 0 && (
                         <div className="text-center py-12 text-gray-400 bg-gray-50 rounded-3xl border border-dashed border-gray-200">

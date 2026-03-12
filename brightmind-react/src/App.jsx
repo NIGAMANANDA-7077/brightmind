@@ -35,6 +35,7 @@ import ForumHome from './pages/student/ForumHome';
 import CourseForum from './pages/student/CourseForum';
 import ThreadDetail from './pages/student/ThreadDetail';
 import AssignmentDetail from './pages/student/AssignmentDetail';
+import StudentNotifications from './pages/student/Notifications';
 import { UserProvider } from './context/UserContext';
 import { CourseProvider } from './context/CourseContext';
 import { ForumProvider } from './context/ForumContext';
@@ -55,6 +56,7 @@ import AdminUsers from './admin/pages/Users';
 import AdminUserCreate from './admin/pages/UserCreate';
 import AdminAnnouncements from './admin/pages/Announcements';
 import AdminSettings from './admin/pages/AdminSettings';
+import AdminLiveClasses from './admin/pages/LiveClasses';
 import { AdminGlobalProvider } from './admin/context/AdminGlobalContext';
 import { AdminSchedulerProvider } from './admin/context/AdminSchedulerContext';
 import { AdminExamProvider } from './admin/context/AdminExamContext';
@@ -70,10 +72,15 @@ import TeacherStudents from './teacher/pages/Students';
 import TeacherAnnouncements from './teacher/pages/Announcements';
 import TeacherProfile from './teacher/pages/Profile';
 import TeacherLive from './teacher/pages/Live';
-import TeacherCourseDetail from './teacher/pages/CourseDetail';
+import TeacherCourseDetail from './teacher/pages/TeacherCourseDetail';
 import TeacherExams from './teacher/pages/Exams';
 import { SharedAnnouncementsProvider } from './context/SharedAnnouncementsContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { BatchProvider } from './context/BatchContext';
+import TeacherBatches from './teacher/pages/Batches';
+import TeacherBatchDetail from './teacher/pages/BatchDetail';
+import AdminBatches from './admin/pages/Batches';
+import AdminBatchCreate from './admin/pages/BatchCreate';
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -107,7 +114,8 @@ function App() {
               <CourseProvider>
                 <ForumProvider>
                   <AssignmentProvider>
-                    <Routes>
+                    <AdminExamProvider>
+                      <Routes>
                       {/* Public Routes */}
                       <Route path="/" element={<Home />} />
                       <Route path="/about" element={<About />} />
@@ -119,7 +127,7 @@ function App() {
                       <Route path="/login" element={<Login />} />
 
                       {/* Dashboard Routes */}
-                      <Route path="/student" element={<StudentLayout />}>
+                      <Route path="/student" element={<BatchProvider role="Student"><StudentLayout /></BatchProvider>}>
                         <Route index element={<Dashboard />} />
                         <Route path="dashboard" element={<Dashboard />} />
                         <Route path="courses" element={<StudentCourses />} />
@@ -141,12 +149,13 @@ function App() {
                         <Route path="mentors" element={<StudentMentor />} />
                         <Route path="support" element={<StudentSupport />} />
                         <Route path="settings" element={<StudentSettings />} />
+                        <Route path="notifications" element={<StudentNotifications />} />
                         <Route path="*" element={<Dashboard />} />
                       </Route>
 
                       {/* Teacher Dashboard Routes */}
                       <Route path="/teacher-dashboard" element={<Navigate to="/teacher/dashboard" replace />} />
-                      <Route path="/teacher" element={<TeacherLayout />}>
+                      <Route path="/teacher" element={<BatchProvider role="Teacher"><TeacherLayout /></BatchProvider>}>
                         <Route index element={<Navigate to="dashboard" replace />} />
                         <Route path="dashboard" element={<TeacherDashboard />} />
                         <Route path="courses" element={<TeacherCourses />} />
@@ -155,6 +164,12 @@ function App() {
                         <Route path="students" element={<TeacherStudents />} />
                         <Route path="announcements" element={<TeacherAnnouncements />} />
                         <Route path="live" element={<TeacherLive />} />
+                        <Route path="batches" element={<TeacherBatches />} />
+                        <Route path="batches/:batchId" element={<TeacherBatchDetail />} />
+                        <Route path="forum" element={<ForumHome />} />
+                        <Route path="forum/course/:courseId" element={<CourseForum />} />
+                        <Route path="forum/thread/:threadId" element={<ThreadDetail />} />
+                        <Route path="questions" element={<AdminQuestions />} />
                         <Route path="exams" element={<TeacherExams />} />
                         <Route path="profile" element={<TeacherProfile />} />
                         <Route path="*" element={<Navigate to="dashboard" replace />} />
@@ -164,13 +179,11 @@ function App() {
                       <Route path="/admin-dashboard" element={<Navigate to="/admin/dashboard" replace />} />
                       <Route path="/admin" element={
                         <AdminCourseProvider>
-                          <AdminExamProvider>
                             <AdminSchedulerProvider>
                               <AdminGlobalProvider>
                                 <AdminLayout />
                               </AdminGlobalProvider>
                             </AdminSchedulerProvider>
-                          </AdminExamProvider>
                         </AdminCourseProvider>
                       }>
                         <Route index element={<Navigate to="dashboard" replace />} />
@@ -200,14 +213,19 @@ function App() {
                         <Route path="users-edit/:id" element={<AdminUserCreate />} />
                         <Route path="users" element={<AdminUsers />} />
                         <Route path="announcements" element={<AdminAnnouncements />} />
+                        <Route path="live-classes" element={<AdminLiveClasses />} />
                         <Route path="settings" element={<AdminSettings />} />
 
                         {/* Placeholders / Catch-all */}
                         <Route path="scheduler" element={<Navigate to="exams/schedule" replace />} />
+                        <Route path="batches" element={<AdminBatches />} />
+                        <Route path="batches/create" element={<AdminBatchCreate />} />
+                        <Route path="batches/edit/:id" element={<AdminBatchCreate />} />
                         <Route path="*" element={<AdminDashboard />} />
                       </Route>
 
                     </Routes>
+                    </AdminExamProvider>
                   </AssignmentProvider>
                 </ForumProvider>
               </CourseProvider>

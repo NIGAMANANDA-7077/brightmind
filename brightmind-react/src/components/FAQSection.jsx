@@ -72,7 +72,7 @@ const FAQSection = () => {
             ref={ref}
             className={`lg:col-span-4 lg:sticky lg:top-10 scroll-slide-right ${isVisible ? 'visible' : ''}`}
           >
-            <h2 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight">
+            <h2 className="text-5xl md:text-6xl font-bold text-white leading-tight">
               Frequently Asked Questions
             </h2>
           </div>

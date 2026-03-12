@@ -2,7 +2,27 @@ const Course = require('../models/Course');
 
 class CourseService {
     async getAllCourses() {
-        return await Course.findAll();
+        const User = require('../models/User');
+        const courses = await Course.findAll();
+
+        return await Promise.all(courses.map(async (course) => {
+            let instructorName = 'Unknown Instructor';
+            let instructorAvatar = 'https://ui-avatars.com/api/?name=User&background=random';
+
+            if (course.teacherId) {
+                const teacher = await User.findByPk(course.teacherId);
+                if (teacher) {
+                    instructorName = teacher.name;
+                    instructorAvatar = teacher.avatar;
+                }
+            }
+
+            return {
+                ...course.toJSON(),
+                instructor: instructorName,
+                instructorAvatar: instructorAvatar
+            };
+        }));
     }
 
     async getCoursesByTeacher(teacherId) {
@@ -18,7 +38,46 @@ class CourseService {
     }
 
     async getCourseById(id) {
-        return await Course.findByPk(id);
+        const User = require('../models/User');
+        const Module = require('../models/Module');
+        const Lesson = require('../models/Lesson');
+
+        const course = await Course.findByPk(id, {
+            include: [
+                {
+                    model: Module,
+                    as: 'courseModules',
+                    include: [
+                        {
+                            model: Lesson,
+                            as: 'lessons'
+                        }
+                    ]
+                }
+            ],
+            order: [
+                [{ model: Module, as: 'courseModules' }, 'moduleOrder', 'ASC'],
+                [{ model: Module, as: 'courseModules' }, { model: Lesson, as: 'lessons' }, 'lessonOrder', 'ASC']
+            ]
+        });
+
+        if (!course) return null;
+
+        let instructorName = 'Unknown Instructor';
+        let instructorAvatar = 'https://ui-avatars.com/api/?name=User&background=random';
+        if (course.teacherId) {
+            const teacher = await User.findByPk(course.teacherId);
+            if (teacher) {
+                instructorName = teacher.name;
+                instructorAvatar = teacher.avatar;
+            }
+        }
+
+        return {
+            ...course.toJSON(),
+            instructor: instructorName,
+            instructorAvatar: instructorAvatar
+        };
     }
 
     async createCourse(courseData) {

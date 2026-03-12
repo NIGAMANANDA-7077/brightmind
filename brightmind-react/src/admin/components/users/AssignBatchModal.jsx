@@ -3,42 +3,33 @@ import { X, Check, Plus, Users as UsersIcon } from 'lucide-react';
 import { useAdminGlobal } from '../../context/AdminGlobalContext';
 
 const AssignBatchModal = ({ isOpen, onClose, selectedUserIds, batchOptions }) => {
-    const { userActions, batchActions } = useAdminGlobal();
-    const [selectedBatch, setSelectedBatch] = useState('');
-    const [isCreatingNew, setIsCreatingNew] = useState(false);
-    const [newBatchName, setNewBatchName] = useState('');
+    const { userActions } = useAdminGlobal();
+    const [selectedBatchId, setSelectedBatchId] = useState('');
 
     if (!isOpen) return null;
 
     const handleSave = () => {
-        let batchToAssign = selectedBatch;
-
-        if (isCreatingNew) {
-            if (!newBatchName.trim()) {
-                alert('Please enter a batch name');
-                return;
-            }
-            const newBatch = batchActions.createBatch(newBatchName);
-            batchToAssign = newBatch.name;
-        } else if (!batchToAssign) {
+        if (!selectedBatchId) {
             alert('Please select a batch');
             return;
         }
 
-        // Action
+        const batchObj = batchOptions.find(b => String(b.id) === String(selectedBatchId));
+        if (!batchObj) return;
+
+        // The property in batch options is typically name (from context map) or batchName (from model). It's safest to check both.
+        const batchName = batchObj.batchName || batchObj.name;
+
         if (selectedUserIds.length === 1) {
-            userActions.assignBatchToUser(selectedUserIds[0], batchToAssign);
-            alert(`Batch "${batchToAssign}" assigned to user.`);
+            userActions.assignBatchToUser(selectedUserIds[0], selectedBatchId, batchName);
+            alert(`Batch "${batchName}" assigned to user.`);
         } else {
-            userActions.assignBatchToUsers(selectedUserIds, batchToAssign);
-            alert(`Batch "${batchToAssign}" assigned to ${selectedUserIds.length} users.`);
+            userActions.assignBatchToUsers(selectedUserIds, selectedBatchId, batchName);
+            alert(`Batch "${batchName}" assigned to ${selectedUserIds.length} users.`);
         }
 
         onClose();
-        // Reset
-        setSelectedBatch('');
-        setIsCreatingNew(false);
-        setNewBatchName('');
+        setSelectedBatchId('');
     };
 
     return (
@@ -63,45 +54,19 @@ const AssignBatchModal = ({ isOpen, onClose, selectedUserIds, batchOptions }) =>
                             Assigning batch to <span className="font-bold text-gray-900">{selectedUserIds.length} users</span>.
                         </p>
 
-                        {!isCreatingNew ? (
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-gray-700">Select Batch</label>
-                                <select
-                                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#8b5cf6]/20 outline-none"
-                                    value={selectedBatch}
-                                    onChange={(e) => setSelectedBatch(e.target.value)}
-                                >
-                                    <option value="">-- Select Batch --</option>
-                                    {batchOptions.map(b => (
-                                        <option key={b.id} value={b.name}>{b.name}</option>
-                                    ))}
-                                </select>
-                                <button
-                                    onClick={() => setIsCreatingNew(true)}
-                                    className="text-sm text-[#8b5cf6] font-bold flex items-center gap-1 hover:underline mt-2"
-                                >
-                                    <Plus size={14} /> Create New Batch
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="space-y-2 bg-purple-50 p-4 rounded-xl border border-purple-100">
-                                <label className="text-sm font-bold text-purple-900">New Batch Name</label>
-                                <input
-                                    type="text"
-                                    autoFocus
-                                    placeholder="e.g. Evening Batch 2024"
-                                    className="w-full px-4 py-2 border border-purple-200 rounded-xl focus:ring-2 focus:ring-[#8b5cf6]/20 outline-none"
-                                    value={newBatchName}
-                                    onChange={(e) => setNewBatchName(e.target.value)}
-                                />
-                                <button
-                                    onClick={() => setIsCreatingNew(false)}
-                                    className="text-xs text-purple-600 font-bold hover:underline mt-2 block"
-                                >
-                                    Cancel & Select Existing
-                                </button>
-                            </div>
-                        )}
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold text-gray-700">Select Batch</label>
+                            <select
+                                className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#8b5cf6]/20 outline-none"
+                                value={selectedBatchId}
+                                onChange={(e) => setSelectedBatchId(e.target.value)}
+                            >
+                                <option value="">-- Select Batch --</option>
+                                {batchOptions.map(b => (
+                                    <option key={b.id} value={b.id}>{b.batchName || b.name}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
                     <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50 rounded-b-2xl">

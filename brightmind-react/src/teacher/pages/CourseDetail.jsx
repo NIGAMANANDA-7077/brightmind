@@ -3,8 +3,9 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import {
     ArrowLeft, BookOpen, Upload, File, Video, Trash2, Plus,
-    CheckCircle, ChevronDown, ChevronUp, Clock, Loader2, FileText
+    CheckCircle, ChevronDown, ChevronUp, Clock, Loader2, FileText, Youtube, Save
 } from 'lucide-react';
+import StepCurriculum from '../../admin/components/courses/StepCurriculum';
 
 // =========================================================
 // Teacher Course Detail — Syllabus + Upload inside course
@@ -18,11 +19,15 @@ const CourseDetail = () => {
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [expandedModule, setExpandedModule] = useState(null);
+    const [localModules, setLocalModules] = useState([]);
+    const [savingSyllabus, setSavingSyllabus] = useState(false);
+    const [ytLink, setYtLink] = useState('');
 
     const fetchCourse = async () => {
         try {
             const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/courses/${courseId}`);
             setCourse(res.data);
+            setLocalModules(res.data.modules || []);
             if (res.data.modules && res.data.modules.length > 0) {
                 setExpandedModule(res.data.modules[0].id || 0);
             }
@@ -81,6 +86,37 @@ const CourseDetail = () => {
             setCourse({ ...course, materials: updatedMaterials });
         } catch (err) {
             console.error("Failed to remove material:", err);
+        }
+    };
+
+    const handleSaveSyllabus = async () => {
+        setSavingSyllabus(true);
+        try {
+            await axios.put(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/courses/${courseId}`, {
+                modules: localModules
+            });
+            setCourse({ ...course, modules: localModules });
+            alert('Syllabus updated successfully!');
+        } catch (err) {
+            console.error('Failed to save syllabus', err);
+            alert('Error saving syllabus');
+        } finally {
+            setSavingSyllabus(false);
+        }
+    };
+
+    const handleAddYoutube = async () => {
+        if (!ytLink.trim()) return;
+        try {
+            const updatedMaterials = [...(course.materials || []), ytLink];
+            await axios.put(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/courses/${courseId}`, {
+                materials: updatedMaterials
+            });
+            setCourse({ ...course, materials: updatedMaterials });
+            setYtLink('');
+            alert('YouTube link added!');
+        } catch (err) {
+            console.error("Failed to add youtube link:", err);
         }
     };
 
@@ -149,57 +185,22 @@ const CourseDetail = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Syllabus Section */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
-                            <BookOpen size={24} className="text-[#8b5cf6]" /> Course Syllabus
-                        </h2>
-                        <span className="text-xs font-bold text-gray-400">{syllabus.length} Modules Total</span>
+                    <div className="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm">
+                        <StepCurriculum 
+                            data={{ modules: localModules }} 
+                            updateData={(newData) => setLocalModules(newData.modules)} 
+                        />
+                        <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end">
+                            <button
+                                onClick={handleSaveSyllabus}
+                                disabled={savingSyllabus}
+                                className="flex items-center gap-2 bg-[#8b5cf6] hover:bg-[#7c3aed] text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-purple-500/20 disabled:opacity-50"
+                            >
+                                {savingSyllabus ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                                Save Syllabus Changes
+                            </button>
+                        </div>
                     </div>
-
-                    {syllabus.length === 0 ? (
-                        <div className="bg-gray-50 rounded-3xl p-12 text-center border border-dashed border-gray-200">
-                            <BookOpen size={32} className="mx-auto text-gray-300 mb-2 opacity-50" />
-                            <p className="text-gray-500 font-bold">No modules defined yet</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {syllabus.map((mod, idx) => (
-                                <div key={idx} className="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm overflow-hidden group hover:border-[#8b5cf6]/30 transition-all">
-                                    <button
-                                        className="w-full flex items-center justify-between p-6 text-left"
-                                        onClick={() => setExpandedModule(expandedModule === idx ? null : idx)}
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 bg-gray-50 text-gray-400 group-hover:bg-purple-50 group-hover:text-[#8b5cf6] rounded-xl flex items-center justify-center font-black text-sm transition-colors">
-                                                {idx + 1}
-                                            </div>
-                                            <div>
-                                                <h3 className="font-bold text-gray-900">{mod.title || `Module ${idx + 1}`}</h3>
-                                                <p className="text-xs text-gray-400 mt-0.5">{(mod.topics || []).length} Core Topics</p>
-                                            </div>
-                                        </div>
-                                        {expandedModule === idx ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
-                                    </button>
-
-                                    {expandedModule === idx && (
-                                        <div className="px-6 pb-6 pt-0 animate-fadeIn">
-                                            <div className="h-px bg-gray-50 mb-6" />
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                {(mod.topics || []).map((topic, i) => (
-                                                    <div key={i} className="flex items-center gap-3 p-3 bg-gray-50/50 rounded-xl border border-gray-100/50">
-                                                        <div className="w-6 h-6 bg-white border border-gray-100 rounded-lg flex items-center justify-center text-[10px] font-black text-[#8b5cf6]">
-                                                            {i + 1}
-                                                        </div>
-                                                        <span className="text-sm font-medium text-gray-700">{topic}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    )}
                 </div>
 
                 {/* Sidebar: Uploads & Exams */}
@@ -238,13 +239,35 @@ const CourseDetail = () => {
                             </div>
                         )}
 
+                        {/* YouTube Link Input */}
+                        <div className="space-y-2">
+                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest pl-1 flex items-center gap-1">
+                                <Youtube size={14} className="text-red-500" /> Add YouTube Link
+                            </label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={ytLink}
+                                    onChange={(e) => setYtLink(e.target.value)}
+                                    placeholder="https://youtube.com/..."
+                                    className="flex-1 w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all text-sm"
+                                />
+                                <button
+                                    onClick={handleAddYoutube}
+                                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold transition-all"
+                                >
+                                    Add
+                                </button>
+                            </div>
+                        </div>
+
                         {/* List of uploaded materials */}
                         <div className="space-y-3">
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Live Assets ({materials.length})</p>
                             {materials.map((m, i) => (
                                 <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl group/item">
-                                    <div className={`p-2 rounded-xl bg-white shadow-sm ${m.includes('.mp4') || m.includes('video') ? 'text-blue-500' : 'text-orange-500'}`}>
-                                        {m.includes('.mp4') || m.includes('video') ? <Video size={16} /> : <FileText size={16} />}
+                                    <div className={`p-2 rounded-xl bg-white shadow-sm ${m.includes('.mp4') || m.includes('video') || m.includes('youtube') || m.includes('youtu.be') ? 'text-blue-500' : 'text-orange-500'}`}>
+                                        {m.includes('.mp4') || m.includes('video') || m.includes('youtube') || m.includes('youtu.be') ? <Video size={16} /> : <FileText size={16} />}
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-xs font-bold text-gray-900 truncate">{m.split('/').pop()}</p>

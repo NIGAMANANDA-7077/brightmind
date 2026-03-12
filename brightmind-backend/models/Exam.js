@@ -11,61 +11,61 @@ const Exam = sequelize.define('Exam', {
         type: DataTypes.STRING,
         allowNull: false
     },
+    description: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
     courseId: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    courseName: {
-        type: DataTypes.STRING,
+    batchId: {
+        type: DataTypes.UUID,
         allowNull: true
     },
-    teacherName: {
-        type: DataTypes.STRING,
-        defaultValue: 'Teacher'
-    },
-    questions: {
-        type: DataTypes.JSON, // Can store array of questions or link to PDF
+    teacherId: {
+        type: DataTypes.UUID,
         allowNull: false
     },
-    totalMarks: {
-        type: DataTypes.INTEGER,
-        defaultValue: 100
+    examType: {
+        type: DataTypes.ENUM('Quiz', 'Practice Test', 'Mid Exam', 'Final Exam'),
+        defaultValue: 'Quiz'
     },
     duration: {
         type: DataTypes.INTEGER, // in minutes
         defaultValue: 60
     },
+    totalMarks: {
+        type: DataTypes.FLOAT,
+        defaultValue: 100
+    },
+    passingMarks: {
+        type: DataTypes.FLOAT,
+        defaultValue: 33
+    },
+    negativeMarking: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
+    randomizeQuestions: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
+    randomizeOptions: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
+    startTime: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    endTime: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
     status: {
-        type: DataTypes.ENUM('Draft', 'Pending Approval', 'Approved', 'Active', 'Completed'),
+        type: DataTypes.ENUM('Draft', 'Active', 'Completed'),
         defaultValue: 'Draft'
-    },
-    sections: {
-        type: DataTypes.JSON,
-        defaultValue: []
-    },
-    versions: {
-        type: DataTypes.JSON,
-        defaultValue: []
-    },
-    lastSaved: {
-        type: DataTypes.DATE,
-        allowNull: true
-    },
-    reviewedBy: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
-    reviewNotes: {
-        type: DataTypes.TEXT,
-        allowNull: true
-    },
-    scheduledAt: {
-        type: DataTypes.DATE,
-        allowNull: true
-    },
-    expiresAt: {
-        type: DataTypes.DATE,
-        allowNull: true
     }
 }, {
     timestamps: true

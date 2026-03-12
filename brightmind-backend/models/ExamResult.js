@@ -7,38 +7,44 @@ const ExamResult = sequelize.define('ExamResult', {
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true
     },
-    studentId: {
-        type: DataTypes.UUID,
-        allowNull: false
-    },
     examId: {
         type: DataTypes.UUID,
         allowNull: false
     },
-    score: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0
-    },
-    totalMarks: {
-        type: DataTypes.INTEGER,
+    studentId: {
+        type: DataTypes.UUID,
         allowNull: false
     },
-    answers: {
-        type: DataTypes.JSON, // Stores the student's submitted answers
-        defaultValue: {}
+    batchId: {
+        type: DataTypes.UUID,
+        allowNull: true
     },
-    submittedAt: {
+    totalMarks: {
+        type: DataTypes.FLOAT,
+        allowNull: false
+    },
+    obtainedMarks: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0
+    },
+    percentage: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0
+    },
+    rank: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
+    status: {
+        type: DataTypes.ENUM('pass', 'fail', 'pending'),
+        defaultValue: 'pending'
+    },
+    publishedAt: {
         type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW
+        allowNull: true
     }
 }, {
-    timestamps: true,
-    indexes: [
-        {
-            unique: true,
-            fields: ['studentId', 'examId'] // Assuming student can only submit once, remove if multiple attempts allowed
-        }
-    ]
+    timestamps: true
 });
 
 module.exports = ExamResult;

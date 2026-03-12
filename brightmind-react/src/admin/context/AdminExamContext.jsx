@@ -1,23 +1,55 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../../utils/axiosConfig';
+import { useUser } from '../../context/UserContext';
 
 const AdminExamContext = createContext();
 
 export const useAdminExams = () => useContext(AdminExamContext);
 
 export const AdminExamProvider = ({ children }) => {
+    const { user } = useUser();
     const [questions, setQuestions] = useState([]);
     const [exams, setExams] = useState([]);
+    const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const mapQuestionToBackend = (q) => ({
+        courseId: q.courseId,
+        questionText: q.text,
+        questionType: q.type,
+        topic: q.topic,
+        difficulty: q.difficulty,
+        marks: q.marks,
+        explanation: q.explanation,
+        options: q.options?.map(opt => ({
+            optionText: opt,
+            isCorrect: opt === q.correctAnswer
+        }))
+    });
+
+    const mapQuestionToFrontend = (q) => ({
+        ...q,
+        text: q.questionText,
+        type: q.questionType,
+        topic: q.topic,
+        options: q.options?.map(opt => opt.optionText) || [],
+        correctAnswer: q.options?.find(opt => opt.isCorrect)?.optionText || ''
+    });
+
     const fetchData = async () => {
+        if (!user || (user.role !== 'Admin' && user.role !== 'Teacher')) {
+            setLoading(false);
+            return;
+        }
         try {
-            const [examsRes, questionsRes] = await Promise.all([
+            const [examsRes, questionsRes, coursesRes] = await Promise.all([
                 api.get('/exams'),
-                api.get('/questions')
+                api.get('/question-bank'),
+                api.get('/courses')
             ]);
             setExams(examsRes.data);
-            setQuestions(questionsRes.data);
+            setQuestions((questionsRes.data || []).map(mapQuestionToFrontend));
+            setCourses(coursesRes.data || []);
         } catch (err) {
             console.error("Failed to fetch admin exam/question data:", err);
         } finally {
@@ -25,15 +57,30 @@ export const AdminExamProvider = ({ children }) => {
         }
     };
 
+    const fetchTopics = async (courseId = '') => {
+        try {
+            const res = await api.get(`/question-bank/topics${courseId ? `?courseId=${courseId}` : ''}`);
+            return res.data;
+        } catch (err) {
+            console.error("Failed to fetch topics:", err);
+            return [];
+        }
+    };
+
     useEffect(() => {
-        fetchData();
-    }, []);
+        if (user) {
+            fetchData();
+        } else {
+            setLoading(false);
+        }
+    }, [user?.id, user?.role]);
 
     // Question Actions
     const addQuestion = async (question) => {
         try {
-            const res = await api.post('/questions', { ...question, lastEdited: 'Just now' });
-            setQuestions([res.data, ...questions]);
+            const payload = mapQuestionToBackend(question);
+            const res = await api.post('/question-bank', payload);
+            setQuestions([mapQuestionToFrontend(res.data), ...questions]);
         } catch (err) {
             console.error("Failed to add question:", err);
         }
@@ -41,8 +88,9 @@ export const AdminExamProvider = ({ children }) => {
 
     const updateQuestion = async (id, updatedData) => {
         try {
-            const res = await api.put(`/questions/${id}`, { ...updatedData, lastEdited: 'Just now' });
-            setQuestions(questions.map(q => q.id === id ? res.data : q));
+            const payload = mapQuestionToBackend(updatedData);
+            const res = await api.put(`/question-bank/${id}`, payload);
+            setQuestions(questions.map(q => q.id === id ? mapQuestionToFrontend(res.data) : q));
         } catch (err) {
             console.error("Failed to update question:", err);
         }
@@ -50,7 +98,7 @@ export const AdminExamProvider = ({ children }) => {
 
     const deleteQuestion = async (id) => {
         try {
-            await api.delete(`/questions/${id}`);
+            await api.delete(`/question-bank/${id}`);
             setQuestions(questions.filter(q => q.id !== id));
         } catch (err) {
             console.error("Failed to delete question:", err);
@@ -85,17 +133,39 @@ export const AdminExamProvider = ({ children }) => {
         }
     };
 
+    const approveExam = async (id, notes) => {
+        try {
+            const res = await api.put(`/exams/${id}/approve`, { notes });
+            setExams(exams.map(e => e.id === id ? res.data.exam : e));
+        } catch (err) {
+            console.error("Failed to approve exam:", err);
+        }
+    };
+
+    const rejectExam = async (id, notes) => {
+        try {
+            const res = await api.put(`/exams/${id}/reject`, { notes });
+            setExams(exams.map(e => e.id === id ? res.data.exam : e));
+        } catch (err) {
+            console.error("Failed to reject exam:", err);
+        }
+    };
+
     return (
         <AdminExamContext.Provider value={{
             questions,
             exams,
+            courses,
             loading,
+            fetchTopics,
             addQuestion,
             updateQuestion,
             deleteQuestion,
             addExam,
             updateExam,
             deleteExam,
+            approveExam,
+            rejectExam,
             // Exam-Question Logic
             addQuestionToSection: async (examId, sectionId, questionId) => {
                 const exam = exams.find(e => e.id === examId);

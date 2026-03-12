@@ -26,6 +26,14 @@ const Certificate = sequelize.define('Certificate', {
     issuedBy: {
         type: DataTypes.STRING, // Admin who issued it
         allowNull: true
+    },
+    grade: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    scores: {
+        type: DataTypes.JSON,
+        allowNull: true
     }
 }, {
     timestamps: true,

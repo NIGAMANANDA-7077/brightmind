@@ -1,208 +1,268 @@
-const Exam = require('../models/Exam');
-const ExamResult = require('../models/ExamResult');
-const Notification = require('../models/Notification');
-const activityController = require('./activityController');
-const Course = require('../models/Course');
+const { Exam, ExamQuestion, QuestionBank, QuestionOption, Course } = require('../models/associations');
+const { Op } = require('sequelize');
 
-exports.getAllExams = async (req, res, next) => {
+exports.createExam = async (req, res, next) => {
     try {
-        const exams = await Exam.findAll();
-        res.json(exams);
+        const { title, description, courseId, batchId, examType, duration, totalMarks, passingMarks, negativeMarking, randomizeQuestions, randomizeOptions, startTime, endTime, questions, sections } = req.body;
+        const teacherId = req.user.id;
+
+        const exam = await Exam.create({
+            title, description, courseId, batchId, teacherId, examType, duration, totalMarks, passingMarks, negativeMarking, randomizeQuestions, randomizeOptions, startTime, endTime, status: 'Active'
+        });
+
+        // Link questions if provided manually (flat list)
+        if (questions && questions.length > 0) {
+            const eqData = questions.map((q, idx) => ({
+                examId: exam.id,
+                questionId: typeof q === 'string' ? q : q.id,
+                marks: q.marks || null,
+                order: idx + 1
+            }));
+            await ExamQuestion.bulkCreate(eqData);
+        }
+
+        // Link questions via sections
+        if (sections && sections.length > 0) {
+            let eqData = [];
+            let globalOrder = 1;
+            sections.forEach(section => {
+                if (section.questions && section.questions.length > 0) {
+                    section.questions.forEach(q => {
+                        eqData.push({
+                            examId: exam.id,
+                            questionId: typeof q === 'string' ? q : q.id,
+                            marks: section.marksPerQuestion || null,
+                            order: globalOrder++,
+                            sectionName: section.name
+                        });
+                    });
+                }
+            });
+            if (eqData.length > 0) {
+                await ExamQuestion.bulkCreate(eqData);
+            }
+        }
+
+        res.status(201).json({ success: true, exam });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error("Error creating exam:", err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+exports.getExams = async (req, res, next) => {
+    try {
+        const teacherId = req.user.id;
+        const whereClause = req.user.role === 'Admin' ? {} : { teacherId };
+        const exams = await Exam.findAll({
+            where: whereClause,
+            include: [{ model: Course, as: 'course', attributes: ['title'] }],
+            order: [['createdAt', 'DESC']]
+        });
+        res.json(exams); // Frontend expects direct array from AdminExamContext.jsx
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+exports.generateRandomPaper = async (req, res, next) => {
+    try {
+        const { examId } = req.params;
+        const { easyCount, mediumCount, hardCount } = req.body;
+        
+        const exam = await Exam.findByPk(examId);
+        if (!exam) return res.status(404).json({ success: false, message: "Exam not found" });
+
+        const fetchRandomQs = async (difficulty, limit) => {
+            if (!limit || limit <= 0) return [];
+            return await QuestionBank.findAll({
+                where: { courseId: exam.courseId, difficulty },
+                order: sequelize.random(),
+                limit
+            });
+        };
+
+        const [easyQs, medQs, hardQs] = await Promise.all([
+            fetchRandomQs('Easy', easyCount),
+            fetchRandomQs('Medium', mediumCount),
+            fetchRandomQs('Hard', hardCount)
+        ]);
+
+        const allQs = [...easyQs, ...medQs, ...hardQs];
+        
+        // Remove existing questions
+        await ExamQuestion.destroy({ where: { examId } });
+
+        const eqData = allQs.map((q, idx) => ({
+            examId,
+            questionId: q.id,
+            marks: q.marks,
+            order: idx + 1
+        }));
+        await ExamQuestion.bulkCreate(eqData);
+
+        res.json({ success: true, message: `Random paper generated with ${allQs.length} questions` });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
     }
 };
 
 exports.getTeacherExams = async (req, res, next) => {
     try {
-        const teacherId = req.params.teacherId;
-        const courses = await Course.findAll({ where: { teacherId } });
-        const courseIds = courses.map(c => c.id);
-
-        const exams = await Exam.findAll({ where: { courseId: courseIds } });
-        res.json(exams);
+        const teacherId = req.user.id;
+        const whereClause = req.user.role === 'Admin' ? {} : { teacherId };
+        const exams = await Exam.findAll({
+            where: whereClause,
+            include: [{ model: Course, as: 'course', attributes: ['title'] }],
+            order: [['createdAt', 'DESC']]
+        });
+        res.json(exams); // Fixed: direct array for frontend consistency
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(500).json({ success: false, message: err.message });
     }
 };
 
-exports.createExam = async (req, res, next) => {
+exports.getStudentExams = async (req, res, next) => {
     try {
-        const exam = await Exam.create(req.body);
-        res.status(201).json(exam);
+        const studentId = req.user.id;
+        const { BatchStudent, Batch, Enrollment } = require('../models/associations');
+        
+        // Find enrolled batches
+        const batchEnrollments = await BatchStudent.findAll({ 
+            where: { studentId },
+            include: [{ model: Batch, as: 'batch', attributes: ['courseId'] }]
+        });
+        
+        // Find direct course enrollments
+        const directEnrollments = await Enrollment.findAll({
+            where: { studentId },
+            attributes: ['courseId']
+        });
+
+        const batchIds = batchEnrollments.map(e => e.batchId);
+        const courseIdsFromBatches = batchEnrollments.map(e => e.batch?.courseId).filter(Boolean);
+        const courseIdsFromEnrollments = directEnrollments.map(e => e.courseId);
+        
+        const allCourseIds = [...new Set([...courseIdsFromBatches, ...courseIdsFromEnrollments])];
+
+        const exams = await Exam.findAll({
+            where: {
+                status: 'Active',
+                [Op.or]: [
+                    { batchId: { [Op.in]: batchIds } },
+                    { 
+                        batchId: null, 
+                        courseId: { [Op.in]: allCourseIds } 
+                    }
+                ]
+            },
+            include: [{ model: Course, as: 'course', attributes: ['title'] }],
+            order: [['createdAt', 'DESC']]
+        });
+        res.json(exams);
     } catch (err) {
-        res.status(400).json({ message: err.message });
+        res.status(500).json({ success: false, message: err.message });
     }
 };
 
 exports.getExamById = async (req, res, next) => {
     try {
-        const exam = await Exam.findByPk(req.params.id);
-        if (!exam) return res.status(404).json({ message: 'Exam not found' });
-        res.json(exam);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-};
-
-exports.submitExam = async (req, res, next) => {
-    try {
-        const examId = req.params.id;
-        const studentId = req.user.id;
-        const { answers } = req.body;
-
-        const exam = await Exam.findByPk(examId);
+        const exam = await Exam.findByPk(req.params.id, {
+            include: [{
+                model: ExamQuestion,
+                as: 'examQuestions',
+                include: [{
+                    model: QuestionBank,
+                    as: 'question',
+                    include: [{ model: QuestionOption, as: 'options' }]
+                }]
+            }]
+        });
         if (!exam) return res.status(404).json({ success: false, message: 'Exam not found' });
 
-        let calculatedScore = 0;
-        let allQuestions = [];
-
-        if (exam.sections && Array.isArray(exam.sections)) {
-            allQuestions = exam.sections.flatMap(s => s.questions || []);
-        } else if (exam.questions && Array.isArray(exam.questions)) {
-            allQuestions = exam.questions;
+        // Optionally hide `isCorrect` from options if requester is a student
+        if (req.user.role === 'Student') {
+            const safeExam = exam.toJSON();
+            safeExam.examQuestions.forEach(eq => {
+                if (eq.question && eq.question.options) {
+                    eq.question.options.forEach(opt => delete opt.isCorrect);
+                    delete eq.question.explanation; // Hide explanation during exam
+                }
+            });
+            return res.json(safeExam);
         }
 
-        for (const q of allQuestions) {
-            const studentAns = answers[q.id];
-            if (studentAns !== undefined && studentAns === q.correctAnswer) {
-                calculatedScore += (q.marks || 1);
-            }
-        }
-
-        let result = await ExamResult.findOne({ where: { studentId, examId } });
-        if (result) {
-            return res.status(400).json({ success: false, message: 'You have already submitted this exam' });
-        }
-
-        result = await ExamResult.create({
-            studentId,
-            examId,
-            score: calculatedScore,
-            totalMarks: exam.totalMarks,
-            answers
-        });
-
-        await activityController.logActivity({
-            user: req.user.name,
-            avatar: req.user.avatar,
-            action: 'completed exam',
-            target: exam.title,
-            userId: req.user.id
-        });
-
-        res.status(201).json({ success: true, result });
+        res.json(exam);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Failed to submit exam' });
+        res.status(500).json({ success: false, message: err.message });
     }
 };
 
 exports.updateExam = async (req, res, next) => {
     try {
-        const exam = await Exam.findByPk(req.params.id);
-        if (!exam) return res.status(404).json({ message: 'Exam not found' });
-        await exam.update(req.body);
+        const { id } = req.params;
+        const { title, description, courseId, batchId, examType, duration, totalMarks, passingMarks, negativeMarking, randomizeQuestions, randomizeOptions, startTime, endTime, questions, sections, status } = req.body;
+
+        const exam = await Exam.findByPk(id);
+        if (!exam) return res.status(404).json({ success: false, message: 'Exam not found' });
+
+        await exam.update({
+            title, description, courseId, batchId, examType, duration, totalMarks, passingMarks, negativeMarking, randomizeQuestions, randomizeOptions, startTime, endTime, status
+        });
+
+        // Update Questions/Sections if provided
+        if (sections || questions) {
+            // Drop old associations
+            await ExamQuestion.destroy({ where: { examId: id } });
+
+            let eqData = [];
+            let globalOrder = 1;
+
+            if (questions && questions.length > 0) {
+                questions.forEach(q => {
+                    eqData.push({
+                        examId: id,
+                        questionId: typeof q === 'string' ? q : q.id,
+                        marks: q.marks || null,
+                        order: globalOrder++
+                    });
+                });
+            }
+
+            if (sections && sections.length > 0) {
+                sections.forEach(section => {
+                    if (section.questions && section.questions.length > 0) {
+                        section.questions.forEach(q => {
+                            eqData.push({
+                                examId: id,
+                                questionId: typeof q === 'string' ? q : q.id,
+                                marks: section.marksPerQuestion || null,
+                                order: globalOrder++,
+                                sectionName: section.name
+                            });
+                        });
+                    }
+                });
+            }
+
+            if (eqData.length > 0) {
+                await ExamQuestion.bulkCreate(eqData);
+            }
+        }
+
         res.json(exam);
     } catch (err) {
-        res.status(400).json({ message: err.message });
+        console.error("Error updating exam:", err);
+        res.status(400).json({ success: false, message: err.message });
     }
 };
 
 exports.deleteExam = async (req, res, next) => {
     try {
         const exam = await Exam.findByPk(req.params.id);
-        if (!exam) return res.status(404).json({ message: 'Exam not found' });
-        await exam.destroy();
-        res.json({ message: 'Exam deleted successfully' });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-};
-
-exports.getTeacherResults = async (req, res, next) => {
-    try {
-        const teacherId = req.params.teacherId;
-        const courses = await Course.findAll({ where: { teacherId } });
-        const courseIds = courses.map(c => c.id);
-
-        const exams = await Exam.findAll({ where: { courseId: courseIds } });
-        const examIds = exams.map(e => e.id);
-
-        const results = await ExamResult.findAll({
-            where: { examId: examIds },
-            order: [['submittedAt', 'DESC']]
-        });
-
-        res.json({ success: true, results });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
-    }
-};
-
-exports.scheduleExam = async (req, res, next) => {
-    try {
-        const { examId, scheduledAt, duration } = req.body;
-        const exam = await Exam.findByPk(examId);
         if (!exam) return res.status(404).json({ success: false, message: 'Exam not found' });
-
-        const expiresAt = new Date(new Date(scheduledAt).getTime() + duration * 60000);
-
-        await exam.update({
-            scheduledAt,
-            expiresAt,
-            status: 'Active'
-        });
-
-        // Create Notification for Students
-        await Notification.create({
-            title: 'New Exam Scheduled',
-            message: `The exam "${exam.title}" for course "${exam.courseName}" has been scheduled for ${new Date(scheduledAt).toLocaleString()}.`,
-            type: 'info',
-            role: 'Student'
-        });
-
-        // Log Activity
-        await activityController.logActivity({
-            user: req.user.name,
-            avatar: req.user.avatar,
-            action: 'scheduled an exam',
-            target: exam.title,
-            userId: req.user.id
-        });
-
-        res.json({ success: true, message: 'Exam scheduled and students notified', exam });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
-    }
-};
-
-exports.getAllResults = async (req, res, next) => {
-    try {
-        const results = await ExamResult.findAll({
-            order: [['submittedAt', 'DESC']]
-        });
-        res.json({ success: true, results });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
-    }
-};
-
-exports.getStudentResults = async (req, res, next) => {
-    try {
-        const studentId = req.user.id;
-        const results = await ExamResult.findAll({
-            where: { studentId },
-            order: [['submittedAt', 'DESC']]
-        });
-
-        // Manual join to include Exam details
-        const resultsWithExams = await Promise.all(results.map(async (r) => {
-            const exam = await Exam.findByPk(r.examId, { attributes: ['title', 'courseName', 'category'] });
-            return { ...r.toJSON(), Exam: exam };
-        }));
-
-        res.json({ success: true, results: resultsWithExams });
+        await exam.destroy();
+        res.json({ success: true, message: 'Exam deleted successfully' });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }

@@ -60,18 +60,21 @@ const Dashboard = () => {
     const { user } = useUser();
     const [stats, setStats] = useState([]);
     const [activity, setActivity] = useState([]);
+    const [forumThreads, setForumThreads] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
             if (!user?.id) return;
             try {
-                const [statsRes, activityRes] = await Promise.all([
+                const [statsRes, activityRes, forumRes] = await Promise.all([
                     api.get(`/users/teacher/${user.id}/stats`),
-                    api.get('/users/activity')
+                    api.get('/users/activity'),
+                    api.get('/forum?limit=3')
                 ]);
                 if (statsRes.data.success) setStats(statsRes.data.stats);
                 if (activityRes.data.success) setActivity(activityRes.data.activities);
+                setForumThreads(forumRes.data.slice(0, 3));
             } catch (err) {
                 console.error("Dashboard data fetch failed", err);
             } finally {
@@ -79,6 +82,13 @@ const Dashboard = () => {
             }
         };
         fetchDashboardData();
+
+        // Real-time polling (every 10 seconds)
+        const interval = setInterval(() => {
+            fetchDashboardData();
+        }, 10000);
+
+        return () => clearInterval(interval);
     }, [user?.id]);
 
     const quickActions = [
@@ -140,7 +150,10 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Activity Feed */}
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 className="text-lg font-bold text-gray-900 mb-6">Recent Activity</h2>
+                    <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+                        <CheckCircle className="text-green-500" size={20} />
+                        Recent Activity
+                    </h2>
                     <div className="space-y-6 relative before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-[2px] before:bg-gray-100">
                         {activity.length > 0 ? activity.map((item) => (
                             <div key={item.id} className="relative pl-10">
@@ -157,6 +170,50 @@ const Dashboard = () => {
                             </div>
                         )) : (
                             <p className="text-center text-gray-400 py-4 italic">No recent activity found.</p>
+                        )}
+                    </div>
+                </div>
+
+                {/* Forum Discussions */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                            <MoreVertical className="text-[#8b5cf6]" size={20} />
+                            Recent Discussions
+                        </h2>
+                        <button
+                            onClick={() => navigate('/teacher/forum')}
+                            className="text-[#8b5cf6] text-sm font-bold hover:underline"
+                        >
+                            View All
+                        </button>
+                    </div>
+                    <div className="space-y-4 flex-1">
+                        {forumThreads.length > 0 ? forumThreads.map((thread) => (
+                            <div
+                                key={thread.id}
+                                onClick={() => navigate(`/teacher/forum/thread/${thread.id}`)}
+                                className="p-4 rounded-xl border border-gray-50 hover:border-[#8b5cf6]/30 hover:bg-[#8b5cf6]/5 transition-all cursor-pointer group"
+                            >
+                                <h4 className="font-bold text-gray-900 text-sm group-hover:text-[#8b5cf6] transition-colors line-clamp-1">{thread.title}</h4>
+                                <div className="flex items-center gap-3 mt-2">
+                                    <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
+                                        <UserPlus size={12} />
+                                        {thread.authorName}
+                                    </div>
+                                    <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
+                                        <ClipboardList size={12} />
+                                        {getTimeAgo(thread.createdAt)}
+                                    </div>
+                                </div>
+                            </div>
+                        )) : (
+                            <div className="h-full flex flex-col items-center justify-center text-center py-10">
+                                <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+                                    <MoreVertical size={20} className="text-gray-300" />
+                                </div>
+                                <p className="text-gray-400 text-sm italic">No recent discussions found.</p>
+                            </div>
                         )}
                     </div>
                 </div>

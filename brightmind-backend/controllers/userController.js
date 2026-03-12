@@ -4,8 +4,15 @@ const userController = {
     // Get all users
     getAllUsers: async (req, res) => {
         try {
+            const Batch = require('../models/Batch');
             const users = await User.findAll({
                 attributes: { exclude: ['password'] },
+                include: [{
+                    model: Batch,
+                    as: 'enrolledBatches',
+                    attributes: ['id', 'batchName'],
+                    through: { attributes: [] }
+                }],
                 order: [['createdAt', 'DESC']]
             });
             res.json(users);
@@ -168,6 +175,62 @@ const userController = {
                     { title: 'Pending Grading', value: pendingGrading, change: 'Requires action', trend: 'down', icon: 'CheckCircle', color: 'bg-green-50 text-green-600', link: '/teacher/assignments' }
                 ]
             });
+        } catch (err) {
+            res.status(500).json({ success: false, message: err.message });
+        }
+    },
+
+    // GET /teacher/:teacherId/students
+    getTeacherStudents: async (req, res) => {
+        try {
+            const teacherId = req.params.teacherId;
+            const Course = require('../models/Course');
+            const Enrollment = require('../models/Enrollment');
+            const Batch = require('../models/Batch');
+
+            // 1. Find all courses taught by this teacher
+            const courses = await Course.findAll({ where: { teacherId }, attributes: ['id', 'title'] });
+            const courseIds = courses.map(c => c.id);
+            const courseMap = {};
+            courses.forEach(c => { courseMap[c.id] = c.title; });
+
+            if (courseIds.length === 0) return res.json({ success: true, students: [] });
+
+            // 2. Find all enrollments for those courses
+            const enrollments = await Enrollment.findAll({
+                where: { courseId: courseIds },
+                attributes: ['studentId', 'courseId', 'progressPercentage', 'enrolledAt']
+            });
+
+            // 3. Unique student IDs
+            const studentIds = [...new Set(enrollments.map(e => e.studentId))];
+            if (studentIds.length === 0) return res.json({ success: true, students: [] });
+
+            // 4. Fetch student records
+            const students = await User.findAll({
+                where: { id: studentIds },
+                attributes: ['id', 'name', 'email', 'avatar', 'createdAt'],
+                include: [{
+                    model: Batch,
+                    as: 'enrolledBatches',
+                    attributes: ['id', 'batchName'],
+                    through: { attributes: [] }
+                }]
+            });
+
+            // 5. Merge enrollment info into each student
+            const result = students.map(s => {
+                const studentEnrollments = enrollments.filter(e => e.studentId === s.id);
+                const enrolledCourses = studentEnrollments.map(e => ({
+                    id: e.courseId,
+                    title: courseMap[e.courseId] || e.courseId
+                }));
+                const progress = {};
+                studentEnrollments.forEach(e => { progress[e.courseId] = e.progressPercentage; });
+                return { ...s.toJSON(), enrolledCourses, progress };
+            });
+
+            res.json({ success: true, students: result });
         } catch (err) {
             res.status(500).json({ success: false, message: err.message });
         }

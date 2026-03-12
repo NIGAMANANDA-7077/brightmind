@@ -7,55 +7,52 @@ const LiveClass = sequelize.define('LiveClass', {
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true
     },
+    courseId: {
+        type: DataTypes.UUID,
+        allowNull: false
+    },
+    teacherId: {
+        type: DataTypes.UUID,
+        allowNull: false
+    },
+    batchId: {
+        type: DataTypes.UUID,
+        allowNull: true
+    },
     title: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    course: {
+    description: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    meetingLink: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    date: {
+    classDate: {
         type: DataTypes.DATEONLY,
         allowNull: false
     },
-    time: {
+    startTime: {
         type: DataTypes.STRING,
         allowNull: false
     },
     duration: {
         type: DataTypes.STRING,
-        allowNull: false
-    },
-    platform: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    link: {
-        type: DataTypes.STRING,
-        allowNull: false
+        defaultValue: '60 minutes'
     },
     status: {
         type: DataTypes.ENUM('Upcoming', 'Live', 'Completed'),
         defaultValue: 'Upcoming'
     },
-    isLive: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false
-    },
-    studentsJoined: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0
-    },
-    mentor: {
+    recordingUrl: {
         type: DataTypes.STRING,
-        defaultValue: 'Teacher'
-    },
-    avatar: {
-        type: DataTypes.STRING,
-        defaultValue: 'https://ui-avatars.com/api/?name=Teacher'
+        allowNull: true
     }
 }, {
+    tableName: 'live_classes',
     timestamps: true
 });
 

@@ -1,18 +1,12 @@
 import React, { useState } from 'react';
 import { useSharedAnnouncements } from '../../context/SharedAnnouncementsContext';
-import { teacherCourses } from '../data/teacherMock';
-import { Megaphone, Plus, Trash2, X, Send, Eye, Bell, Calendar, Filter } from 'lucide-react';
+import { useBatch } from '../../context/BatchContext';
+import { Megaphone, Plus, X, Send, Eye, Bell, Calendar, Filter } from 'lucide-react';
 
 // =========================================================
-// Teacher Announcements — shared with Admin panel
-// Teacher can create; Admin can edit + delete (from admin panel)
+// Teacher Announcements 
+// Teachers can only post to their specific batches.
 // =========================================================
-
-const audienceColor = {
-    All: 'bg-purple-50 text-purple-600',
-    Students: 'bg-blue-50 text-blue-600',
-    Teachers: 'bg-orange-50 text-orange-600',
-};
 
 const statusColor = {
     Published: 'bg-green-100 text-green-700',
@@ -22,25 +16,29 @@ const statusColor = {
 
 const Announcements = () => {
     const { announcements, addAnnouncement } = useSharedAnnouncements();
+    const { myBatches } = useBatch(); // Teacher's batches
 
     const [showForm, setShowForm] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
-    const [form, setForm] = useState({ title: '', message: '', audience: 'All', date: '' });
+    const [form, setForm] = useState({ title: '', message: '', batchId: '', date: '' });
     const [formError, setFormError] = useState('');
-    const [filterAudience, setFilterAudience] = useState('All');
+    const [filterBatch, setFilterBatch] = useState('All');
 
     const handlePost = (e) => {
         e.preventDefault();
-        if (!form.title.trim() || !form.message.trim()) { setFormError('Title and message are required.'); return; }
-        addAnnouncement(form);
-        setForm({ title: '', message: '', audience: 'All', date: '' });
+        if (!form.title.trim() || !form.message.trim() || !form.batchId) { 
+            setFormError('Title, message, and batch are required.'); 
+            return; 
+        }
+        addAnnouncement({ ...form, audience: 'Student' }); // Teacher posts are always for students
+        setForm({ title: '', message: '', batchId: '', date: '' });
         setFormError('');
         setShowForm(false);
     };
 
-    const filtered = [...announcements]
-        .filter(a => filterAudience === 'All' || a.audience === filterAudience)
-        .sort((a, b) => new Date(b.date) - new Date(a.date));
+    const filtered = announcements
+        .filter(a => filterBatch === 'All' || a.batchId === filterBatch)
+        .sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
 
     return (
         <div className="max-w-[1400px] mx-auto animate-fadeIn">
@@ -53,7 +51,9 @@ const Announcements = () => {
                             <button onClick={() => setShowPreview(false)}><X size={20} className="text-gray-400" /></button>
                         </div>
                         <div className="p-7">
-                            <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-[#8b5cf6]/10 text-[#8b5cf6] mb-4">{form.audience}</span>
+                            <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-[#8b5cf6]/10 text-[#8b5cf6] mb-4">
+                                For Batch: {myBatches.find(b => b.id === form.batchId)?.batchName || 'Unknown Batch'}
+                            </span>
                             <h2 className="text-xl font-bold text-gray-900 mb-4">{form.title || 'Untitled'}</h2>
                             <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{form.message || 'No content...'}</p>
                         </div>
@@ -68,17 +68,18 @@ const Announcements = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Announcements</h1>
-                    <p className="text-gray-500">Post messages — visible to Admin and students</p>
+                    <p className="text-gray-500">Post updates directly to your batch students</p>
                 </div>
                 <div className="flex gap-3">
                     <select
                         className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-[#8b5cf6]/20"
-                        value={filterAudience}
-                        onChange={e => setFilterAudience(e.target.value)}
+                        value={filterBatch}
+                        onChange={e => setFilterBatch(e.target.value)}
                     >
-                        <option value="All">All Audiences</option>
-                        <option value="Students">Students</option>
-                        <option value="Teachers">Teachers</option>
+                        <option value="All">All Your Batches</option>
+                        {myBatches.map(b => (
+                            <option key={b.id} value={b.id}>{b.batchName}</option>
+                        ))}
                     </select>
                     <button
                         onClick={() => setShowForm(true)}
@@ -90,7 +91,7 @@ const Announcements = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Create Form (Sticky Panel) */}
+                {/* Create Form */}
                 {showForm && (
                     <div className="lg:col-span-1">
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 sticky top-6">
@@ -107,20 +108,17 @@ const Announcements = () => {
                                     <label className="block text-xs font-bold text-gray-500 mb-1">Message</label>
                                     <textarea required rows={5} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 resize-none" placeholder="Write your message..." value={form.message} onChange={e => setForm(p => ({ ...p, message: e.target.value }))} />
                                 </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 mb-1">Audience</label>
-                                        <select className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#8b5cf6]/20" value={form.audience} onChange={e => setForm(p => ({ ...p, audience: e.target.value }))}>
-                                            <option value="All">All Users</option>
-                                            <option value="Students">Students Only</option>
-                                            <option value="Teachers">Teachers Only</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 mb-1">Schedule (Opt.)</label>
-                                        <input type="date" className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#8b5cf6]/20" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} min={new Date().toISOString().split('T')[0]} />
-                                    </div>
+                                
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1">Select Batch</label>
+                                    <select required className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#8b5cf6]/20" value={form.batchId} onChange={e => setForm(p => ({ ...p, batchId: e.target.value }))}>
+                                        <option value="">-- Choose Batch --</option>
+                                        {myBatches.map(b => (
+                                            <option key={b.id} value={b.id}>{b.batchName} ({b.course?.title})</option>
+                                        ))}
+                                    </select>
                                 </div>
+
                                 <div className="flex gap-2 pt-1">
                                     <button type="button" onClick={() => setShowPreview(true)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-1">
                                         <Eye size={16} /> Preview
@@ -141,25 +139,26 @@ const Announcements = () => {
                         <div className="text-center py-16 text-gray-400 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
                             <Filter size={36} className="mx-auto mb-3 opacity-20" />
                             <p className="font-medium">No announcements match your filters</p>
-                            <button onClick={() => setFilterAudience('All')} className="mt-2 text-[#8b5cf6] font-bold text-sm hover:underline">Clear Filters</button>
+                            <button onClick={() => setFilterBatch('All')} className="mt-2 text-[#8b5cf6] font-bold text-sm hover:underline">Clear Filters</button>
                         </div>
                     ) : (
                         <div className="space-y-4">
                             {filtered.map(an => (
                                 <div key={an.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow group flex gap-4">
-                                    <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${audienceColor[an.audience] || 'bg-purple-50 text-purple-600'}`}>
+                                    <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 bg-blue-50 text-blue-600`}>
                                         <Bell size={20} />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex flex-wrap items-center gap-2 mb-1">
                                             <h3 className="text-base font-bold text-gray-900 group-hover:text-[#8b5cf6] transition-colors">{an.title}</h3>
-                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${statusColor[an.status] || 'bg-gray-100 text-gray-500'}`}>{an.status}</span>
+                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${statusColor[an.status] || 'bg-gray-100 text-gray-500'}`}>{an.status || 'Published'}</span>
                                         </div>
                                         <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400 mb-3">
-                                            <span className="flex items-center gap-1"><Calendar size={11} /> {an.date}</span>
-                                            <span className={`px-2 py-0.5 rounded-lg border text-xs font-medium ${audienceColor[an.audience]}`}>For: {an.audience}</span>
-                                            {an.postedBy === 'Teacher' && (
-                                                <span className="bg-[#8b5cf6]/10 text-[#8b5cf6] px-2 py-0.5 rounded-full font-bold text-xs">You posted</span>
+                                            <span className="flex items-center gap-1"><Calendar size={11} /> {new Date(an.createdAt || an.date).toLocaleDateString()}</span>
+                                            {an.batch ? (
+                                                <span className="px-2 py-0.5 rounded-lg border text-xs font-medium bg-[#8b5cf6]/10 text-[#8b5cf6] border-[#8b5cf6]/20">Batch: {an.batch.batchName}</span>
+                                            ) : (
+                                                <span className="px-2 py-0.5 rounded-lg border text-xs font-medium bg-gray-100 text-gray-600">Global</span>
                                             )}
                                         </div>
                                         <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">{an.message}</p>

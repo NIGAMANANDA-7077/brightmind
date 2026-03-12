@@ -14,8 +14,11 @@ import {
     LogOut,
     ChevronLeft,
     ChevronRight,
-    X
+    X,
+    Layers,
+    Video
 } from 'lucide-react';
+
 
 const Sidebar = ({ isOpen, onClose }) => {
     const [collapsed, setCollapsed] = useState(false);
@@ -23,13 +26,13 @@ const Sidebar = ({ isOpen, onClose }) => {
     const navItems = [
         { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { to: '/admin/courses', icon: BookOpen, label: 'Courses' },
-        { to: '/admin/media', icon: Image, label: 'Media' },
-        { to: '/admin/questions', icon: HelpCircle, label: 'Questions' },
         { to: '/admin/exams', icon: FileText, label: 'Exams' },
         { to: '/admin/exams/schedule', icon: Calendar, label: 'Scheduler' },
         { to: '/admin/results', icon: ClipboardList, label: 'Results' },
         { to: '/admin/users', icon: Users, label: 'Users' },
         { to: '/admin/announcements', icon: Megaphone, label: 'Announcements' },
+        { to: '/admin/live-classes', icon: Video, label: 'Live Classes' },
+        { to: '/admin/batches', icon: Layers, label: 'Batches' },
         { to: '/admin/settings', icon: Settings, label: 'Settings' },
     ];
 

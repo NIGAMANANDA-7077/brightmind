@@ -23,4 +23,10 @@ router.put('/:id', courseController.updateCourse);
 // DELETE course
 router.delete('/:id', courseController.deleteCourse);
 
+// GET student specific course structure
+router.get('/student/course/:courseId', courseController.getCourseById);
+
+// GET courses where student is enrolled
+router.get('/student/enrolled/:studentId', courseController.getStudentCourses);
+
 module.exports = router;

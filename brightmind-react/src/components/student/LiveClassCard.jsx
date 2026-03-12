@@ -41,7 +41,7 @@ const LiveClassCard = ({ session }) => {
         }
 
         // Open the link regardless of tracking success
-        window.open(session.link, '_blank', 'noopener,noreferrer');
+        window.open(session.meetingLink, '_blank', 'noopener,noreferrer');
     };
 
     return (
@@ -49,8 +49,8 @@ const LiveClassCard = ({ session }) => {
             {/* Date Box */}
             <div className={`w-full md:w-24 h-24 rounded-2xl flex flex-col items-center justify-center shrink-0 ${isLive ? 'bg-red-50 text-red-500' : isCompleted ? 'bg-gray-100 text-gray-500' : 'bg-purple-50 text-[#8b5cf6]'
                 }`}>
-                <span className="text-xs font-bold uppercase tracking-wider">{formatDate(session.date)}</span>
-                <span className="text-2xl font-black mt-1">{session.status === 'Live' ? 'LIVE' : getDayNumber(session.date)}</span>
+                <span className="text-xs font-bold uppercase tracking-wider">{formatDate(session.classDate)}</span>
+                <span className="text-2xl font-black mt-1">{session.status === 'Live' ? 'LIVE' : getDayNumber(session.classDate)}</span>
             </div>
 
             <div className="flex-1">
@@ -65,12 +65,12 @@ const LiveClassCard = ({ session }) => {
                 <h3 className="text-xl font-bold text-gray-900 mb-1">{session.title}</h3>
                 <div className="flex items-center gap-4 text-sm text-gray-500 mt-2">
                     <div className="flex items-center gap-2">
-                        <img src={session.avatar || `https://ui-avatars.com/api/?name=${session.mentor || 'Teacher'}`} alt={session.mentor} className="w-5 h-5 rounded-full" />
-                        <span>{session.mentor || 'Teacher'}</span>
+                        <img src={session.teacher?.avatar || `https://ui-avatars.com/api/?name=${session.teacher?.name || 'Teacher'}`} alt={session.teacher?.name} className="w-5 h-5 rounded-full" />
+                        <span>{session.teacher?.name || 'Teacher'}</span>
                     </div>
                     <div className="flex items-center gap-1">
                         <Clock size={14} />
-                        <span>{session.time}</span>
+                        <span>{session.startTime}</span>
                     </div>
                 </div>
             </div>
@@ -85,15 +85,17 @@ const LiveClassCard = ({ session }) => {
                     </button>
                 ) : (
                     <a
-                        href={session.link}
+                        href={isCompleted ? session.recordingUrl : session.meetingLink}
                         target="_blank"
                         rel="noopener noreferrer"
                         className={`w-full md:w-auto px-6 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${isCompleted
-                                ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                : 'bg-[#8b5cf6] text-white hover:bg-[#7c3aed] shadow-lg shadow-purple-500/20'
+                            ? (session.recordingUrl ? 'bg-green-500 text-white hover:bg-green-600 shadow-lg shadow-green-500/20' : 'bg-gray-100 text-gray-400 cursor-not-allowed pointer-events-none')
+                            : 'bg-[#8b5cf6] text-white hover:bg-[#7c3aed] shadow-lg shadow-purple-500/20'
                             }`}
                     >
-                        {isCompleted ? <><PlayCircle size={18} /> Watch Recording</> : 'Join Session'}
+                        {isCompleted ? (
+                            session.recordingUrl ? <><PlayCircle size={18} /> Watch Recording</> : <><Clock size={18} /> Recording Pending</>
+                        ) : 'Join Session'}
                     </a>
                 )}
             </div>

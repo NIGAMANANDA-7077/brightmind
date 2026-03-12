@@ -2,19 +2,55 @@ import React, { useState, useEffect } from 'react';
 import api from '../../utils/axiosConfig';
 import LiveClassCard from '../../components/student/LiveClassCard';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Video, Loader2 } from 'lucide-react';
+import { useCourse } from '../../context/CourseContext';
 
 const Live = () => {
+    const { courses } = useCourse();
     const [activeTab, setActiveTab] = useState('Upcoming');
     const [selectedDate, setSelectedDate] = useState(new Date().getDate());
     const [liveClasses, setLiveClasses] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState('');
 
     const fetchSessions = async () => {
+        if (!courses || courses.length === 0) {
+            setLoading(false);
+            return;
+        }
+
         try {
-            const res = await api.get('/live-classes');
-            setLiveClasses(res.data);
+            setLoading(true);
+            setFetchError('');
+
+            // Fetch live classes for each enrolled course using the unified endpoint.
+            const responses = await Promise.all(courses.map(async (course) => {
+                try {
+                    const res = await api.get(`/live-classes/${course.id}`);
+                    const sessions = Array.isArray(res.data?.liveClasses) ? res.data.liveClasses : [];
+                    return sessions.map(session => ({
+                        ...session,
+                        course: session.course?.title || course.title
+                    }));
+                } catch (err) {
+                    console.error(`Failed for course ${course.id}:`, err);
+                    return [];
+                }
+            }));
+
+            const allSessions = responses.flat();
+
+            // Sort by date and time
+            allSessions.sort((a, b) => {
+                const dateA = new Date(`${a.classDate} ${a.startTime}`);
+                const dateB = new Date(`${b.classDate} ${b.startTime}`);
+                return dateA - dateB;
+            });
+
+            setLiveClasses(allSessions);
         } catch (err) {
             console.error("Failed to fetch student live sessions:", err);
+            setLiveClasses([]);
+            setFetchError(err.response?.data?.message || 'Failed to load live classes.');
         } finally {
             setLoading(false);
         }
@@ -22,13 +58,13 @@ const Live = () => {
 
     useEffect(() => {
         fetchSessions();
-    }, []);
+    }, [courses]);
 
-    const liveNowClasses = liveClasses.filter(c => c.isLive || c.status === 'Live');
+    const liveNowClasses = liveClasses.filter(c => c.status === 'Live');
+    const upcomingClasses = liveClasses.filter(c => c.status === 'Upcoming' || c.status === 'Live');
+    const recordedClasses = liveClasses.filter(c => c.status === 'Completed');
 
-    const filteredClasses = activeTab === 'Upcoming'
-        ? liveClasses.filter(c => (c.status === 'Upcoming' || c.status === 'Live') && !(c.isLive))
-        : liveClasses.filter(c => c.status === 'Completed');
+    const filteredClasses = activeTab === 'Upcoming' ? upcomingClasses : recordedClasses;
 
     if (loading && liveClasses.length === 0) {
         return (
@@ -101,7 +137,7 @@ const Live = () => {
                                     }`}
                             >
                                 <span className="text-sm font-bold">{date}</span>
-                                {liveClasses.some(c => c.date === dateStr) && (
+                                {liveClasses.some(c => c.classDate === dateStr) && (
                                     <div className={`w-1 h-1 rounded-full mt-1 ${selectedDate === date ? 'bg-white' : 'bg-[#8b5cf6]'}`}></div>
                                 )}
                             </button>
@@ -122,10 +158,16 @@ const Live = () => {
                                 : 'border-transparent text-gray-500 hover:text-gray-700'
                                 }`}
                         >
-                            {tab === 'Recorded' ? 'Recorded' : 'Upcoming'} {tab === 'Upcoming' && `(${filteredClasses.length})`}
+                            {tab === 'Recorded' ? 'Recorded' : 'Upcoming'} {tab === 'Upcoming' && `(${upcomingClasses.length})`}
                         </button>
                     ))}
                 </div>
+
+                {fetchError && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm font-medium">
+                        {fetchError}
+                    </div>
+                )}
 
                 <div className="space-y-4">
                     {filteredClasses.length > 0 ? (

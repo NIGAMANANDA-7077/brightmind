@@ -1,10 +1,17 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Navigate } from 'react-router-dom';
 import Sidebar from '../components/student/Sidebar';
 import Topbar from '../components/student/Topbar';
+import { useUser } from '../context/UserContext';
 
 const StudentLayout = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const { user, loading } = useUser();
+
+    if (loading) return null; // Let global preloader handle it
+    if (!user || user.role !== 'Student') {
+        return <Navigate to="/login" replace />;
+    }
 
     return (
         <div className="min-h-screen bg-[#f8f9fc] flex">

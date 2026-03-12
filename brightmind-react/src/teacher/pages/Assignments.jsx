@@ -1,13 +1,10 @@
-import React, { useState } from 'react';
-import { teacherAssignments, teacherCourses } from '../data/teacherMock';
+import React, { useState, useEffect } from 'react';
+import api from '../../utils/axiosConfig';
 import {
     ClipboardList, Plus, X, Check, ChevronDown, ChevronUp,
-    Star, Search, Calendar, Clock, Users
+    Star, Search, Calendar, Users
 } from 'lucide-react';
-
-// =========================================================
-// Teacher Assignments — Admin-style table layout
-// =========================================================
+import { useBatch } from '../../context/BatchContext';
 
 const statusBadge = (status) => {
     const map = {
@@ -24,39 +21,113 @@ const statusBadge = (status) => {
 };
 
 const Assignments = () => {
-    const [assignments, setAssignments] = useState(teacherAssignments);
+    const [assignments, setAssignments] = useState([]);
     const [expandedId, setExpandedId] = useState(null);
     const [showCreate, setShowCreate] = useState(false);
     const [gradeInputs, setGradeInputs] = useState({});
     const [search, setSearch] = useState('');
-    const [form, setForm] = useState({ title: '', courseId: '', deadline: '', totalMarks: '' });
+    const [form, setForm] = useState({ title: '', batchId: '', deadline: '', totalMarks: '' });
     const [formError, setFormError] = useState('');
+    const [loading, setLoading] = useState(true);
+
+    const { myBatches } = useBatch(); // Get teacher's active batches
+
+    useEffect(() => {
+        fetchAssignments();
+    }, []);
+
+    const fetchAssignments = async () => {
+        setLoading(true);
+        try {
+            const res = await api.get('/assignments');
+            const data = res.data.map(a => ({ ...a, submissions: a.submissions || [] }));
+            setAssignments(data);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchSubmissions = async (id) => {
+        try {
+            const res = await api.get(`/assignments/${id}/submissions`);
+            setAssignments(prev => prev.map(a => a.id === id ? { ...a, submissions: res.data } : a));
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleExpand = (id) => {
+        if (expandedId === id) {
+            setExpandedId(null);
+        } else {
+            setExpandedId(id);
+            fetchSubmissions(id); // Fetch submissions when expanding
+        }
+    };
 
     const filtered = assignments.filter(a =>
         a.title.toLowerCase().includes(search.toLowerCase()) ||
-        a.courseName.toLowerCase().includes(search.toLowerCase())
+        (a.courseName && a.courseName.toLowerCase().includes(search.toLowerCase())) ||
+        (a.batch?.batchName && a.batch.batchName.toLowerCase().includes(search.toLowerCase()))
     );
 
-    const handleCreate = () => {
-        if (!form.title || !form.courseId || !form.deadline || !form.totalMarks) { setFormError('All fields are required.'); return; }
-        const course = teacherCourses.find(c => c.id === form.courseId);
-        setAssignments(prev => [{
-            id: `A${Date.now()}`, title: form.title,
-            courseId: form.courseId, courseName: course?.title || '',
-            deadline: form.deadline, totalMarks: Number(form.totalMarks), submissions: [],
-        }, ...prev]);
-        setForm({ title: '', courseId: '', deadline: '', totalMarks: '' });
-        setFormError(''); setShowCreate(false);
+    const handleCreate = async () => {
+        if (!form.title || !form.batchId || !form.deadline || !form.totalMarks) { 
+            setFormError('All fields are required.'); 
+            return; 
+        }
+        
+        try {
+            const selectedBatch = myBatches.find(b => b.id === form.batchId);
+            const courseId = selectedBatch?.course?.id || selectedBatch?.courseId;
+            const courseName = selectedBatch?.course?.title || 'Unknown Course';
+
+            const res = await api.post('/assignments', {
+                title: form.title,
+                courseId: courseId,
+                courseName: courseName,
+                batchId: form.batchId,
+                deadline: form.deadline,
+                totalMarks: Number(form.totalMarks)
+            });
+
+            const newAssignment = {
+                ...res.data,
+                batch: { id: form.batchId, batchName: selectedBatch?.batchName },
+                submissions: []
+            };
+
+            setAssignments(prev => [newAssignment, ...prev]);
+            setForm({ title: '', batchId: '', deadline: '', totalMarks: '' });
+            setFormError('');
+            setShowCreate(false);
+        } catch (err) {
+            setFormError(err.response?.data?.message || 'Error creating assignment');
+        }
     };
 
-    const saveGrade = (assignmentId, studentId, totalMarks) => {
+    const saveGrade = async (assignmentId, studentId, totalMarks) => {
         const key = `${assignmentId}-${studentId}`;
         const val = Number(gradeInputs[key]);
         if (isNaN(val) || val < 0 || val > totalMarks) return;
-        setAssignments(prev => prev.map(a => {
-            if (a.id !== assignmentId) return a;
-            return { ...a, submissions: a.submissions.map(s => s.studentId === studentId ? { ...s, grade: val, status: 'Graded' } : s) };
-        }));
+
+        try {
+            await api.put(`/assignments/${assignmentId}/grade`, {
+                studentId,
+                grade: val
+            });
+            
+            // local update
+            setAssignments(prev => prev.map(a => {
+                if (a.id !== assignmentId) return a;
+                return { ...a, submissions: a.submissions.map(s => s.studentId === studentId ? { ...s, grade: val, status: 'Graded' } : s) };
+            }));
+        } catch (err) {
+            console.error("Error saving grade", err);
+            alert("Failed to save grade");
+        }
     };
 
     return (
@@ -65,7 +136,7 @@ const Assignments = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Assignments</h1>
-                    <p className="text-gray-500">Create and manage assignments across your courses</p>
+                    <p className="text-gray-500">Create and manage assignments for your batches</p>
                 </div>
                 <button
                     onClick={() => setShowCreate(true)}
@@ -80,7 +151,7 @@ const Assignments = () => {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <input
                     type="text"
-                    placeholder="Search assignments or courses..."
+                    placeholder="Search by title, course, or batch..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all font-medium"
@@ -94,17 +165,22 @@ const Assignments = () => {
                         <thead className="bg-gray-50 border-b border-gray-100">
                             <tr>
                                 <th className="py-4 px-6 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Assignment</th>
-                                <th className="py-4 px-6 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Course</th>
+                                <th className="py-4 px-6 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Batch</th>
                                 <th className="py-4 px-6 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Deadline</th>
                                 <th className="py-4 px-6 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Marks</th>
-                                <th className="py-4 px-6 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Submissions</th>
                                 <th className="py-4 px-6 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {filtered.map(a => {
-                                const subCount = a.submissions.filter(s => s.status !== 'Pending').length;
-                                const gradedCount = a.submissions.filter(s => s.status === 'Graded').length;
+                            {loading && assignments.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="py-10 text-center text-gray-500">Loading assignments...</td>
+                                </tr>
+                            ) : filtered.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="py-10 text-center text-gray-500">No assignments found</td>
+                                </tr>
+                            ) : filtered.map(a => {
                                 const isOpen = expandedId === a.id;
                                 const isOverdue = new Date(a.deadline) < new Date();
 
@@ -118,12 +194,12 @@ const Assignments = () => {
                                                     </div>
                                                     <div>
                                                         <p className="font-bold text-gray-900 text-sm">{a.title}</p>
-                                                        <p className="text-xs text-gray-400">{a.totalMarks} marks total</p>
+                                                        <p className="text-xs text-gray-500">{a.courseName?.split('—')[0]?.trim() || 'No Course'}</p>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="py-4 px-6">
-                                                <p className="text-sm text-gray-600 font-medium">{a.courseName.split('—')[0].trim()}</p>
+                                                <p className="text-sm text-gray-600 font-bold">{a.batch?.batchName || 'Global'}</p>
                                             </td>
                                             <td className="py-4 px-6">
                                                 <div className="flex items-center gap-2 text-sm">
@@ -135,19 +211,13 @@ const Assignments = () => {
                                             <td className="py-4 px-6 text-center">
                                                 <span className="font-bold text-gray-900 text-sm">{a.totalMarks}</span>
                                             </td>
-                                            <td className="py-4 px-6 text-center">
-                                                <div className="flex items-center justify-center gap-2 text-xs">
-                                                    <span className="bg-blue-50 text-blue-600 font-bold px-2 py-1 rounded-full">{subCount} sub.</span>
-                                                    <span className="bg-green-50 text-green-600 font-bold px-2 py-1 rounded-full">{gradedCount} graded</span>
-                                                </div>
-                                            </td>
                                             <td className="py-4 px-6 text-right">
                                                 <button
-                                                    onClick={() => setExpandedId(isOpen ? null : a.id)}
+                                                    onClick={() => handleExpand(a.id)}
                                                     className="bg-[#8b5cf6] hover:bg-[#7c3aed] text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 ml-auto"
                                                 >
                                                     {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                                                    {isOpen ? 'Close' : 'View'}
+                                                    {isOpen ? 'Close' : 'View Submissions'}
                                                 </button>
                                             </td>
                                         </tr>
@@ -155,10 +225,10 @@ const Assignments = () => {
                                         {/* Expanded Submissions */}
                                         {isOpen && (
                                             <tr>
-                                                <td colSpan={6} className="p-0 bg-gray-50/50">
+                                                <td colSpan={5} className="p-0 bg-gray-50/50">
                                                     <div className="px-6 py-4">
                                                         <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Student Submissions</p>
-                                                        {a.submissions.length === 0 ? (
+                                                        {(!a.submissions || a.submissions.length === 0) ? (
                                                             <p className="text-sm text-gray-400 py-3 text-center">No submissions received yet</p>
                                                         ) : (
                                                             <div className="overflow-x-auto">
@@ -177,7 +247,7 @@ const Assignments = () => {
                                                                             const key = `${a.id}-${s.studentId}`;
                                                                             return (
                                                                                 <tr key={s.studentId} className="hover:bg-white transition-colors">
-                                                                                    <td className="py-2.5 pr-4 font-medium text-gray-800">{s.studentName}</td>
+                                                                                    <td className="py-2.5 pr-4 font-medium text-gray-800">{s.studentName || s.student?.name || 'Unknown'}</td>
                                                                                     <td className="py-2.5 pr-4 text-gray-400 text-xs">
                                                                                         {s.submittedAt ? new Date(s.submittedAt).toLocaleString() : <span className="text-yellow-500">Pending</span>}
                                                                                     </td>
@@ -223,12 +293,6 @@ const Assignments = () => {
                         </tbody>
                     </table>
                 </div>
-                {filtered.length === 0 && (
-                    <div className="text-center py-14 text-gray-400">
-                        <ClipboardList size={36} className="mx-auto mb-3 opacity-20" />
-                        <p className="font-medium">No assignments found</p>
-                    </div>
-                )}
             </div>
 
             {/* Create Modal */}
@@ -246,10 +310,10 @@ const Assignments = () => {
                                 <input className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#8b5cf6]/20" placeholder="e.g. Newton's Laws Problems" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 mb-1">Course</label>
-                                <select className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#8b5cf6]/20" value={form.courseId} onChange={e => setForm(p => ({ ...p, courseId: e.target.value }))}>
-                                    <option value="">Select a course</option>
-                                    {teacherCourses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                                <label className="block text-xs font-bold text-gray-500 mb-1">Assign to Batch</label>
+                                <select className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#8b5cf6]/20" value={form.batchId} onChange={e => setForm(p => ({ ...p, batchId: e.target.value }))}>
+                                    <option value="">Select a batch</option>
+                                    {myBatches.map(b => <option key={b.id} value={b.id}>{b.batchName} ({b.course?.title})</option>)}
                                 </select>
                             </div>
                             <div className="grid grid-cols-2 gap-4">

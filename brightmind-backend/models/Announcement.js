@@ -30,6 +30,10 @@ const Announcement = sequelize.define('Announcement', {
     postedBy: {
         type: DataTypes.STRING,
         allowNull: true
+    },
+    batchId: {
+        type: DataTypes.UUID,
+        allowNull: true
     }
 }, {
     timestamps: true

@@ -15,9 +15,21 @@ const Attendance = sequelize.define('Attendance', {
         type: DataTypes.UUID,
         allowNull: false
     },
+    batchId: {
+        type: DataTypes.UUID,
+        allowNull: true
+    },
+    status: {
+        type: DataTypes.STRING,
+        defaultValue: 'present'
+    },
     joinedAt: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW
+    },
+    markedAt: {
+        type: DataTypes.DATE,
+        allowNull: true
     },
     durationMinutes: {
         type: DataTypes.INTEGER,
