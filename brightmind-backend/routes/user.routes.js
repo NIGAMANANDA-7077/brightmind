@@ -1,35 +1,46 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
+const { protect, authorize } = require('../middlewares/authMiddleware');
 
-// Get all users
-router.get('/', userController.getAllUsers);
+// ─── Admin: Create Student / Teacher (protected) ──────────────────────────
+router.post('/admin/create', protect, authorize('Admin'), userController.adminCreateUser);
 
-// Get user stats
-router.get('/stats', userController.getUserStats);
+// Get all users (protected — tenant isolation requires req.user)
+router.get('/', protect, userController.getAllUsers);
 
-// Get monthly analytics
-router.get('/analytics/monthly', userController.getMonthlyAnalytics);
+// Theme preference (protected — any authenticated role)
+router.get('/theme', protect, userController.getThemePreference);
+router.put('/theme', protect, userController.updateThemePreference);
 
-// Teacher Dashboard Stats
-router.get('/teacher/:teacherId/stats', userController.getTeacherDashboardStats);
+// Get user stats (protected)
+router.get('/stats', protect, userController.getUserStats);
 
-// Teacher's enrolled students
-router.get('/teacher/:teacherId/students', userController.getTeacherStudents);
+// Get monthly analytics (protected)
+router.get('/analytics/monthly', protect, userController.getMonthlyAnalytics);
 
-// Recent Activity
-router.get('/activity', userController.getRecentActivity);
+// Teacher Dashboard Stats (protected)
+router.get('/teacher/:teacherId/stats', protect, userController.getTeacherDashboardStats);
 
-// Create user
-router.post('/', userController.createUser);
+// Teacher's enrolled students (protected)
+router.get('/teacher/:teacherId/students', protect, userController.getTeacherStudents);
 
-// Update user status
-router.patch('/:id/status', userController.updateUserStatus);
+// Recent Activity (protected)
+router.get('/activity', protect, userController.getRecentActivity);
 
-// Update full user details
-router.put('/:id', userController.updateUser);
+// Create user (protected — tenantId injected from req.user)
+router.post('/', protect, userController.createUser);
 
-// Delete user
-router.delete('/:id', userController.deleteUser);
+// User Dashboard (batch-scoped content)
+router.get('/:id/dashboard', protect, userController.getDashboard);
+
+// Update user status (protected)
+router.patch('/:id/status', protect, userController.updateUserStatus);
+
+// Update full user details (Admin only)
+router.put('/:id', protect, authorize('Admin'), userController.updateUser);
+
+// Delete user (Admin only)
+router.delete('/:id', protect, authorize('Admin'), userController.deleteUser);
 
 module.exports = router;

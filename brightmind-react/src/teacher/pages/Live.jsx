@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Video, Calendar as CalendarIcon, Plus, Clock, Link as LinkIcon, Loader2, PlayCircle, Trash2, Edit2 } from 'lucide-react';
+import { Video, Plus, Clock, Link as LinkIcon, Loader2, PlayCircle, Trash2, Edit2, Calendar as CalendarIcon } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../utils/axiosConfig';
 import { useUser } from '../../context/UserContext';
 import { useBatch } from '../../context/BatchContext';
-
-const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const statusColor = {
     Live: 'bg-red-100 text-red-600',
@@ -17,7 +15,6 @@ const Live = () => {
     const { user } = useUser();
     const [searchParams, setSearchParams] = useSearchParams();
     const [tab, setTab] = useState('Upcoming');
-    const [selectedDate, setSelectedDate] = useState(new Date().getDate());
     const [showScheduleForm, setShowScheduleForm] = useState(false);
     const [sessions, setSessions] = useState([]);
     const [courses, setCourses] = useState([]);
@@ -50,8 +47,18 @@ const Live = () => {
         if (!user?.id) return;
 
         try {
-            const res = await api.get(`/courses/teacher/${user.id}`);
-            const teacherCourses = Array.isArray(res.data) ? res.data : [];
+            // Try teacher-specific first, fallback to all courses
+            let teacherCourses = [];
+            try {
+                const res = await api.get(`/courses/teacher/${user.id}`);
+                teacherCourses = Array.isArray(res.data) ? res.data : [];
+            } catch (_) {}
+
+            if (teacherCourses.length === 0) {
+                const allRes = await api.get('/courses');
+                teacherCourses = Array.isArray(allRes.data) ? allRes.data : allRes.data?.data || [];
+            }
+
             setCourses(teacherCourses);
 
             if (teacherCourses.length === 0) {
@@ -60,22 +67,18 @@ const Live = () => {
                 return;
             }
 
-            const urlCourseId = (searchParams.get('courseId') || '').trim();
-            const hasUrlCourse = teacherCourses.some(course => course.id === urlCourseId);
-            const nextCourseId = hasUrlCourse
-                ? urlCourseId
-                : (selectedCourseId && teacherCourses.some(course => course.id === selectedCourseId)
-                    ? selectedCourseId
-                    : teacherCourses[0].id);
-
-            setSelectedCourseId(nextCourseId);
-            setForm(prev => ({ ...prev, courseId: nextCourseId }));
-            setSearchParams({ courseId: nextCourseId }, { replace: true });
+            // Only set the initial course once — prefer URL param, else first course
+            setSelectedCourseId(prev => {
+                if (prev && teacherCourses.some(c => c.id === prev)) return prev;
+                const urlCourseId = new URLSearchParams(window.location.search).get('courseId') || '';
+                const valid = teacherCourses.some(c => c.id === urlCourseId);
+                return valid ? urlCourseId : teacherCourses[0].id;
+            });
         } catch (err) {
             console.error("Failed to fetch courses:", err);
             setFetchError(err.response?.data?.message || 'Failed to load your courses.');
         }
-    }, [user?.id, searchParams, selectedCourseId, setSearchParams]);
+    }, [user?.id]); // ← only re-run if user changes, NOT on selectedCourseId/searchParams
 
     const fetchLiveClasses = useCallback(async (courseIdToFetch) => {
         const activeCourseId = (courseIdToFetch || selectedCourseId || '').trim();
@@ -89,7 +92,7 @@ const Live = () => {
         setLoading(true);
         setFetchError('');
         try {
-            const res = await api.get(`/live-classes/${activeCourseId}`);
+            const res = await api.get(`/live-classes/course/${activeCourseId}`);
             setSessions(res.data.liveClasses || []);
         } catch (err) {
             console.error("Failed to fetch live sessions:", err);
@@ -98,26 +101,32 @@ const Live = () => {
         } finally {
             setLoading(false);
         }
-    }, [selectedCourseId]);
+    }, []); // no deps — courseId always passed as argument
 
     useEffect(() => {
         fetchTeacherCourses();
     }, [fetchTeacherCourses]);
 
+    // Batches that belong to the currently selected course
+    const courseBatches = myBatches.filter(b => b.courseId === selectedCourseId || b.course?.id === selectedCourseId);
+
     useEffect(() => {
         if (!selectedCourseId) return;
         setSearchParams({ courseId: selectedCourseId }, { replace: true });
-        setForm(prev => ({ ...prev, courseId: selectedCourseId }));
+        // Auto-fill batch: pick first batch for this course
+        const firstBatch = myBatches.find(b => b.courseId === selectedCourseId || b.course?.id === selectedCourseId);
+        setForm(prev => ({ ...prev, courseId: selectedCourseId, batchId: firstBatch?.id || '' }));
+        setFilterBatchId('All');
         fetchLiveClasses(selectedCourseId);
-    }, [selectedCourseId, fetchLiveClasses, setSearchParams]);
+    }, [selectedCourseId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ─── Handlers ──────────────────────────────────────────────
 
     const handleSchedule = async () => {
         setErrorMsg('');
         setActionBanner('');
-        if (!form.title || !form.courseId || !form.date || !form.time || !form.meetingLink) {
-            setErrorMsg('Please fill in all required fields.');
+        if (!form.title || !form.courseId || !form.batchId || !form.date || !form.time || !form.meetingLink) {
+            setErrorMsg('Please fill in all required fields, including selecting a batch.');
             return;
         }
 
@@ -255,7 +264,7 @@ const Live = () => {
                         className="bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-[#8b5cf6]/30"
                     >
                         <option value="All">All Batches</option>
-                        {myBatches.filter(b => b.courseId === selectedCourseId || b.course?.id === selectedCourseId).map(b => (
+                        {courseBatches.map(b => (
                             <option key={b.id} value={b.id}>{b.batchName}</option>
                         ))}
                     </select>
@@ -301,42 +310,6 @@ const Live = () => {
                 </div>
             ))}
 
-            {/* Weekly Calendar Widget */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="font-bold text-gray-900 flex items-center gap-2">
-                        <CalendarIcon size={20} className="text-[#8b5cf6]" />
-                        {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
-                    </h2>
-                </div>
-                <div className="grid grid-cols-7 gap-2 text-center">
-                    {weekDays.map(d => (
-                        <div key={d} className="text-xs font-bold text-gray-400 mb-2">{d}</div>
-                    ))}
-                    {Array.from({ length: 7 }).map((_, i) => {
-                        const day = new Date();
-                        day.setDate(day.getDate() - day.getDay() + i + 1);
-                        const d = day.getDate();
-                        const dateStr = day.toISOString().split('T')[0];
-                        const hasClass = sessions.some(s => s.classDate === dateStr);
-                        return (
-                            <button
-                                key={d}
-                                onClick={() => setSelectedDate(d)}
-                                className={`h-12 rounded-xl flex flex-col items-center justify-center transition-all ${selectedDate === d
-                                    ? 'bg-[#8b5cf6] text-white shadow-lg shadow-purple-500/30'
-                                    : 'text-gray-700 hover:bg-gray-50'}`}
-                            >
-                                <span className="text-sm font-bold">{d}</span>
-                                {hasClass && (
-                                    <div className={`w-1 h-1 rounded-full mt-1 ${selectedDate === d ? 'bg-white' : 'bg-[#8b5cf6]'}`} />
-                                )}
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
-
             {/* Sessions List */}
             <div>
                 <div className="flex border-b border-gray-200 mb-6">
@@ -348,9 +321,9 @@ const Live = () => {
                                 ? 'border-[#8b5cf6] text-[#8b5cf6]'
                                 : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                         >
-                            {t} ({tab === 'Upcoming'
-                                ? sessions.filter(s => s.status === 'Upcoming' || s.status === 'Live').length
-                                : sessions.filter(s => s.status === 'Completed').length})
+                            {t} ({t === 'Upcoming'
+                                ? baseFiltered.filter(s => s.status === 'Upcoming' || s.status === 'Live').length
+                                : baseFiltered.filter(s => s.status === 'Completed').length})
                         </button>
                     ))}
                 </div>
@@ -474,14 +447,14 @@ const Live = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Specific Batch (Optional)</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Select Batch</label>
                                 <select
                                     className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#8b5cf6]/30"
                                     value={form.batchId}
                                     onChange={e => setForm(p => ({ ...p, batchId: e.target.value }))}
                                 >
-                                    <option value="">-- All Batches (Global Course) --</option>
-                                    {myBatches.filter(b => b.courseId === selectedCourseId || b.course?.id === selectedCourseId).map(b => (
+                                    <option value="">-- Select a Batch --</option>
+                                    {courseBatches.map(b => (
                                         <option key={b.id} value={b.id}>{b.batchName}</option>
                                     ))}
                                 </select>
@@ -489,7 +462,7 @@ const Live = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                                    <input type="date" className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#8b5cf6]/30" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} />
+                                    <input type="date" min={new Date().toISOString().split('T')[0]} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#8b5cf6]/30" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>

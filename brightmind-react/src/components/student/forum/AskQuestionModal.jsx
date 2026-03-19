@@ -1,12 +1,37 @@
-import React, { useState } from 'react';
-import { X, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, MessageSquare, Loader } from 'lucide-react';
+import api from '../../../utils/axiosConfig';
 
-const AskQuestionModal = ({ isOpen, onClose, onSubmit, courses, initialCourseId }) => {
+const AskQuestionModal = ({ isOpen, onClose, onSubmit }) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [courseId, setCourseId] = useState(initialCourseId || '');
     const [tagInput, setTagInput] = useState('');
     const [tags, setTags] = useState([]);
+
+    // Multi-batch state
+    const [myBatches, setMyBatches] = useState([]);
+    const [batchId, setBatchId] = useState('');
+    const [loadingBatches, setLoadingBatches] = useState(false);
+
+    // Fetch student's batches whenever modal opens
+    useEffect(() => {
+        if (!isOpen) return;
+        const fetchBatches = async () => {
+            setLoadingBatches(true);
+            try {
+                const res = await api.get('/batches/student/my-batches');
+                const data = res.data.data || [];
+                setMyBatches(data);
+                // Auto-select if only one batch
+                if (data.length === 1) setBatchId(data[0].id);
+            } catch (err) {
+                console.error('Failed to fetch student batches:', err);
+            } finally {
+                setLoadingBatches(false);
+            }
+        };
+        fetchBatches();
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -26,22 +51,27 @@ const AskQuestionModal = ({ isOpen, onClose, onSubmit, courses, initialCourseId 
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        const selectedCourse = courses.find(c => c.id === courseId);
+        const selectedBatch = myBatches.find(b => b.id === batchId);
 
         onSubmit({
             title,
             description,
-            courseId,
-            courseName: selectedCourse ? selectedCourse.title : 'General',
+            batchId: batchId || undefined,
+            batchName: selectedBatch ? selectedBatch.batchName : undefined,
             tags
         });
 
         // Reset and close
         setTitle('');
         setDescription('');
+        setBatchId(myBatches.length === 1 ? myBatches[0].id : '');
         setTags([]);
+        setTagInput('');
         onClose();
     };
+
+    const isMultiBatch = myBatches.length > 1;
+    const singleBatch = myBatches.length === 1 ? myBatches[0] : null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
@@ -59,21 +89,39 @@ const AskQuestionModal = ({ isOpen, onClose, onSubmit, courses, initialCourseId 
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                    {/* Course Selection */}
-                    <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Select Course</label>
-                        <select
-                            value={courseId}
-                            onChange={(e) => setCourseId(e.target.value)}
-                            required
-                            className="w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 focus:border-[#8b5cf6] font-medium text-gray-600"
-                        >
-                            <option value="" disabled>Choose a course</option>
-                            {courses.map(course => (
-                                <option key={course.id} value={course.id}>{course.title}</option>
-                            ))}
-                        </select>
-                    </div>
+                    {/* Batch field */}
+                    {loadingBatches ? (
+                        <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 rounded-xl border border-gray-100">
+                            <Loader size={16} className="animate-spin text-[#8b5cf6]" />
+                            <span className="text-sm text-gray-500">Loading your batches...</span>
+                        </div>
+                    ) : isMultiBatch ? (
+                        /* Multiple batches → show dropdown */
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">
+                                Select Batch
+                                <span className="ml-2 text-xs font-normal text-gray-400">Your discussion will only be visible to this batch</span>
+                            </label>
+                            <select
+                                value={batchId}
+                                onChange={(e) => setBatchId(e.target.value)}
+                                required
+                                className="w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 focus:border-[#8b5cf6] font-medium text-gray-600"
+                            >
+                                <option value="" disabled>Choose a batch</option>
+                                {myBatches.map(batch => (
+                                    <option key={batch.id} value={batch.id}>{batch.batchName}</option>
+                                ))}
+                            </select>
+                        </div>
+                    ) : singleBatch ? (
+                        /* Single batch → auto-assigned info banner */
+                        <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 rounded-xl border border-blue-100">
+                            <span className="text-xs font-bold text-blue-500 uppercase tracking-wide">Your Batch</span>
+                            <span className="text-sm font-bold text-blue-700">{singleBatch.batchName}</span>
+                            <span className="ml-auto text-xs text-blue-400">Auto-assigned</span>
+                        </div>
+                    ) : null}
 
                     {/* Title */}
                     <div>
@@ -90,7 +138,9 @@ const AskQuestionModal = ({ isOpen, onClose, onSubmit, courses, initialCourseId 
 
                     {/* Tags */}
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Tags <span className="font-normal text-gray-400">(Press Enter to add)</span></label>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                            Tags <span className="font-normal text-gray-400">(Press Enter to add)</span>
+                        </label>
                         <div className="flex flex-wrap gap-2 mb-2">
                             {tags.map(tag => (
                                 <span key={tag} className="bg-gray-100 text-gray-600 px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-1">
@@ -132,7 +182,8 @@ const AskQuestionModal = ({ isOpen, onClose, onSubmit, courses, initialCourseId 
                         </button>
                         <button
                             type="submit"
-                            className="px-6 py-3 rounded-xl bg-[#8b5cf6] text-white font-bold hover:bg-[#7c3aed] shadow-lg shadow-purple-500/20 transition-all active:scale-95"
+                            disabled={isMultiBatch && !batchId}
+                            className="px-6 py-3 rounded-xl bg-[#8b5cf6] text-white font-bold hover:bg-[#7c3aed] shadow-lg shadow-purple-500/20 transition-all active:scale-95 disabled:opacity-50"
                         >
                             Post Question
                         </button>
@@ -144,3 +195,4 @@ const AskQuestionModal = ({ isOpen, onClose, onSubmit, courses, initialCourseId 
 };
 
 export default AskQuestionModal;
+

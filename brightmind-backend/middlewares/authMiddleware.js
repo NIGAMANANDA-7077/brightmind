@@ -40,6 +40,12 @@ const authorize = (...roles) => {
         }
 
         const userRole = req.user.role?.toLowerCase();
+
+        // 🌟 SuperAdmin bypass: SuperAdmin has FULL ACCESS to all modules
+        if (userRole === 'superadmin') {
+            return next();
+        }
+
         const allowedRoles = roles.map(r => r.toLowerCase());
 
         if (!allowedRoles.includes(userRole)) {
@@ -50,4 +56,38 @@ const authorize = (...roles) => {
     };
 };
 
-module.exports = { protect, authorize };
+const ensureBatchAccess = (batchIdParam = 'batchId') => {
+    return async (req, res, next) => {
+        try {
+            if (!req.user) {
+                return res.status(401).json({ success: false, message: 'Not authorized' });
+            }
+            const userRole = req.user.role?.toLowerCase();
+            // Admins and SuperAdmins bypass batch checks
+            if (userRole === 'admin' || userRole === 'superadmin') return next();
+
+            const batchId = req.params[batchIdParam] || req.body[batchIdParam] || req.query[batchIdParam];
+            if (!batchId) return next();
+
+            if (userRole === 'student') {
+                const BatchStudent = require('../models/BatchStudent');
+                const record = await BatchStudent.findOne({ where: { batchId, studentId: req.user.id } });
+                if (!record) {
+                    return res.status(403).json({ success: false, message: 'Access denied: you are not enrolled in this batch.' });
+                }
+            } else if (userRole === 'teacher') {
+                const Batch = require('../models/Batch');
+                const batch = await Batch.findOne({ where: { id: batchId, teacherId: req.user.id } });
+                if (!batch) {
+                    return res.status(403).json({ success: false, message: 'Access denied: you are not assigned to this batch.' });
+                }
+            }
+            next();
+        } catch (err) {
+            console.error('[ensureBatchAccess]', err.message);
+            res.status(500).json({ success: false, message: 'Server error checking batch access' });
+        }
+    };
+};
+
+module.exports = { protect, authorize, ensureBatchAccess };

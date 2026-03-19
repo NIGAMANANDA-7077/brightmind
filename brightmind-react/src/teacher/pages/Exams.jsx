@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../../context/UserContext';
+import { useBatch } from '../../context/BatchContext';
 import api from '../../utils/axiosConfig';
 import { Loader2 } from 'lucide-react';
 
-import QuestionBankTab from '../components/exams/QuestionBankTab';
 import ExamsTab from '../components/exams/ExamsTab';
 import SubmissionsTab from '../components/exams/SubmissionsTab';
 
 const Exams = () => {
     const { user } = useUser();
+    const { myBatches } = useBatch();
     const [activeTab, setActiveTab] = useState('My Exams');
     const [courses, setCourses] = useState([]);
-    const [batches, setBatches] = useState([]);
     const [exams, setExams] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -19,13 +19,11 @@ const Exams = () => {
         if (!user?.id) return;
         setLoading(true);
         try {
-            const [coursesRes, batchesRes, examsRes] = await Promise.all([
+            const [coursesRes, examsRes] = await Promise.all([
                 api.get('/courses'),
-                api.get('/batches/teacher/my-batches'),
                 api.get('/exams/teacher')
             ]);
-            setCourses(coursesRes.data);
-            setBatches(Array.isArray(batchesRes.data) ? batchesRes.data : batchesRes.data?.batches || []);
+            setCourses(coursesRes.data || []);
             setExams(examsRes.data || []);
         } catch (err) {
             console.error("Failed to fetch teacher exam context:", err);
@@ -51,14 +49,14 @@ const Exams = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Advanced Exam Engine</h1>
-                    <p className="text-gray-500">Manage Question Bank, construct dynamic papers, and evaluate submissions</p>
+                    <h1 className="text-2xl font-bold text-gray-900">Exam Manager</h1>
+                    <p className="text-gray-500">Create exams for your batches, add questions, and review student submissions</p>
                 </div>
             </div>
 
             {/* Tabs Navigation */}
             <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl w-fit">
-                {['Question Bank', 'My Exams', 'Review Submissions'].map(tab => (
+                {['My Exams', 'Review Submissions'].map(tab => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -74,8 +72,7 @@ const Exams = () => {
             </div>
 
             {/* Tab Content */}
-            {activeTab === 'Question Bank' && <QuestionBankTab courses={courses} />}
-            {activeTab === 'My Exams' && <ExamsTab courses={courses} batches={batches} />}
+            {activeTab === 'My Exams' && <ExamsTab courses={courses} batches={myBatches} />}
             {activeTab === 'Review Submissions' && <SubmissionsTab courses={courses} exams={exams} />}
         </div>
     );

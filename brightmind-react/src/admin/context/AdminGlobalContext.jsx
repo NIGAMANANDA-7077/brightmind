@@ -26,6 +26,7 @@ export const AdminGlobalProvider = ({ children }) => {
             setUsers(res.data.map(u => ({
                 ...u,
                 joinedDate: new Date(u.createdAt).toISOString().split('T')[0],
+                // courses is now supplied by the backend (teacher course titles / student is empty)
                 courses: u.courses || []
             })));
         } catch (err) {

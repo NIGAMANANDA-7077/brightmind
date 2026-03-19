@@ -1,8 +1,10 @@
 import React from 'react';
 import { X, Bell, Calendar, User } from 'lucide-react';
 
-const AnnouncementDetailModal = ({ isOpen, onClose, announcement }) => {
+const AnnouncementDetailModal = ({ isOpen, onClose, onConfirm, announcement }) => {
     if (!isOpen || !announcement) return null;
+
+    const handleClose = onConfirm || onClose;
 
     return (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fade-in backdrop-blur-sm">
@@ -45,7 +47,7 @@ const AnnouncementDetailModal = ({ isOpen, onClose, announcement }) => {
 
                     <div className="pt-6 flex justify-end">
                         <button
-                            onClick={onClose}
+                            onClick={handleClose}
                             className="px-8 py-3 bg-[#8b5cf6] text-white font-bold rounded-2xl hover:bg-[#7c3aed] transition-all shadow-lg shadow-purple-500/20 active:scale-95"
                         >
                             Got it, Thanks!

@@ -17,7 +17,8 @@ exports.createQuestion = async (req, res, next) => {
             difficulty,
             marks: marks || 1,
             negativeMarks: negativeMarks || 0,
-            explanation
+            explanation,
+            tenantId: req.user?.tenantId || null
         });
 
         // If options are provided (for MCQ, Multiple Select, True/False)
@@ -48,8 +49,14 @@ exports.getQuestions = async (req, res, next) => {
 
         // Build filter
         let whereClause = {};
-        if (req.user.role !== 'Admin') {
+        if (req.user.role === 'SuperAdmin') {
+            // SuperAdmin sees all
+        } else if (req.user.role !== 'Admin') {
             whereClause.teacherId = teacherId;
+            whereClause.tenantId = req.user?.tenantId || null;
+        } else {
+            // Admin sees all within their tenant
+            whereClause.tenantId = req.user?.tenantId || null;
         }
         if (courseId) whereClause.courseId = courseId;
         if (difficulty) whereClause.difficulty = difficulty;

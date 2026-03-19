@@ -18,7 +18,8 @@ const AssignmentDetail = () => {
     }
 
     const renderAssignmentContent = () => {
-        switch (assignment.type) {
+        const type = (assignment.type || 'File').toLowerCase();
+        switch (type) {
             case 'file':
                 return (
                     <FileUploadAssignment
@@ -41,12 +42,17 @@ const AssignmentDetail = () => {
                     />
                 );
             default:
-                return <div>Unknown assignment type</div>;
+                return (
+                    <FileUploadAssignment
+                        assignment={assignment}
+                        onSubmit={(fileName) => submitFileAssignment(assignment.id, fileName)}
+                    />
+                );
         }
     };
 
     // For OMR, we might want a different layout (fullscreen-ish) without the standard header
-    if (assignment.type === 'omr' && assignment.status !== 'Graded') {
+    if ((assignment.type || '').toLowerCase() === 'omr' && assignment.status !== 'Graded') {
         return (
             <div className="p-4 md:p-8 max-w-7xl mx-auto animate-fade-in">
                 <button
@@ -86,8 +92,8 @@ const AssignmentDetail = () => {
                             {assignment.status}
                         </div>
                         <div className="flex items-center gap-2 text-gray-500 font-medium text-sm">
-                            <Calendar size={16} /> Due: {assignment.dueDate}
-                        </div>
+                                <Calendar size={16} /> Due: {assignment.deadline || assignment.dueDate}
+                            </div>
                     </div>
                 </div>
 

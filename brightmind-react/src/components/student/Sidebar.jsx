@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Video, MessageSquare, User, Calendar, FileText, FileQuestion, Award, Settings, LogOut, X } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Video, MessageSquare, User, Calendar, FileText, FileQuestion, Settings, LogOut, X } from 'lucide-react';
 
 const Sidebar = ({ isOpen, onClose }) => {
     const links = [
@@ -10,7 +10,6 @@ const Sidebar = ({ isOpen, onClose }) => {
         { name: 'Discussion Forum', path: '/student/forum', icon: MessageSquare },
         { name: 'Assignments', path: '/student/assignments', icon: FileText },
         { name: 'Exams & Quizzes', path: '/student/exams', icon: FileQuestion },
-        { name: 'Certificates', path: '/student/certificates', icon: Award },
         { name: 'Settings', path: '/student/settings', icon: Settings },
     ];
 

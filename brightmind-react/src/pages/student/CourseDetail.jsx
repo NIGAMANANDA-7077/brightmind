@@ -283,37 +283,6 @@ const CourseDetail = () => {
                                 </button>
                             )}
                         </div>
-
-                        <div className="mt-8 pt-6 border-t border-gray-100">
-                            {isCompleted ? (
-                                <button
-                                    onClick={() => navigate('/student/certificates')}
-                                    className="w-full flex items-center gap-3 p-4 bg-green-50 rounded-xl border border-green-100 hover:bg-green-100 transition-colors group cursor-pointer"
-                                >
-                                    <div className="p-2 bg-white rounded-lg text-green-500 shadow-sm">
-                                        <Award size={20} />
-                                    </div>
-                                    <div className="flex-1 text-left">
-                                        <p className="text-xs font-bold text-green-600 uppercase">Certificate Unlocked!</p>
-                                        <p className="text-xs text-green-700">Click to view your certificate</p>
-                                    </div>
-                                    <CheckCircle size={20} className="text-green-500" />
-                                </button>
-                            ) : (
-                                <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-xl">
-                                    <div className="p-2 bg-white rounded-lg text-[#8b5cf6]">
-                                        <Award size={20} />
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className="text-xs font-bold text-[#8b5cf6] uppercase">Certificate</p>
-                                        <p className="text-xs text-purple-700">
-                                            Complete {totalLessons - completedCount} more lesson{totalLessons - completedCount !== 1 ? 's' : ''} to unlock
-                                        </p>
-                                    </div>
-                                    <Lock size={16} className="text-purple-300" />
-                                </div>
-                            )}
-                        </div>
                     </div>
                 </div>
             </div>

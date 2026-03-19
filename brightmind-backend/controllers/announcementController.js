@@ -2,26 +2,61 @@ const Announcement = require('../models/Announcement');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const Batch = require('../models/Batch');
+const BatchStudent = require('../models/BatchStudent');
+const { Op } = require('sequelize');
+const logAdminActivity = require('../utils/logAdminActivity');
+
+// Helper: get all student userIds for a given batchId
+async function getStudentIdsForBatch(batchId) {
+    const rows = await BatchStudent.findAll({ where: { batchId }, attributes: ['studentId'] });
+    const ids = rows.map(r => r.studentId);
+    // Also include students with batchId on User directly
+    const direct = await User.findAll({ where: { batchId, role: 'Student' }, attributes: ['id'] });
+    direct.forEach(u => { if (!ids.includes(u.id)) ids.push(u.id); });
+    return ids;
+}
+
+// Helper: get all userIds for a given role (Student/Teacher) within a tenant
+async function getUserIdsByRole(role, tenantId = null) {
+    const where = { role };
+    if (tenantId) where.tenantId = tenantId;
+    const users = await User.findAll({ where, attributes: ['id'] });
+    return users.map(u => u.id);
+}
+
+// Helper: bulk-create per-user notifications, excluding the sender
+async function createUserNotifications(userIds, notifData, excludeUserId = null) {
+    if (!userIds || userIds.length === 0) return;
+    const filtered = excludeUserId ? userIds.filter(id => id !== excludeUserId) : userIds;
+    if (filtered.length === 0) return;
+    const records = filtered.map(uid => ({ ...notifData, userId: uid, id: undefined }));
+    await Notification.bulkCreate(records, { ignoreDuplicates: true });
+}
 
 exports.getAllAnnouncements = async (req, res, next) => {
     try {
         const { batchId } = req.query;
         let where = {};
         
+        // Scope by tenant (SuperAdmin sees all)
+        if (req.user?.role !== 'SuperAdmin') {
+            where.tenantId = req.user?.tenantId || null;
+        }
+
         if (req.user && req.user.role === 'Student') {
             const student = await User.findByPk(req.user.id);
-            if (!student.batchId) {
-                // Return only global student announcements
-                where.audience = ['All', 'Student'];
-                where.batchId = null;
+            // Get all batches for this student
+            const batchStudentRows = await BatchStudent.findAll({ where: { studentId: req.user.id }, attributes: ['batchId'] });
+            const batchIds = batchStudentRows.map(r => r.batchId);
+            if (student?.batchId && !batchIds.includes(student.batchId)) batchIds.push(student.batchId);
+
+            if (batchIds.length === 0) {
+                where = { batchId: null, audience: { [Op.in]: ['All', 'Students'] } };
             } else {
-                // Return global announcements OR batch-specific ones
-                // using Sequelize Op.or
-                const { Op } = require('sequelize');
                 where = {
                     [Op.or]: [
-                        { batchId: student.batchId },
-                        { batchId: null, audience: ['All', 'Student'] }
+                        { batchId: { [Op.in]: batchIds } },
+                        { batchId: null, audience: { [Op.in]: ['All', 'Students'] } }
                     ]
                 };
             }
@@ -29,15 +64,12 @@ exports.getAllAnnouncements = async (req, res, next) => {
             if (batchId) {
                 where.batchId = batchId;
             } else {
-                // Teacher gets global announcements + their own batch announcements
                 const batches = await Batch.findAll({ where: { teacherId: req.user.id }, attributes: ['id'] });
                 const batchIds = batches.map(b => b.id);
-                
-                const { Op } = require('sequelize');
                 where = {
                     [Op.or]: [
-                        { batchId: batchIds },
-                        { batchId: null, audience: ['All', 'Teacher'] }
+                        ...(batchIds.length > 0 ? [{ batchId: { [Op.in]: batchIds } }] : []),
+                        { batchId: null, audience: { [Op.in]: ['All', 'Teachers'] } }
                     ]
                 };
             }
@@ -60,53 +92,139 @@ exports.getAllAnnouncements = async (req, res, next) => {
 
 exports.createAnnouncement = async (req, res, next) => {
     try {
-        const { title, audience, batchId } = req.body;
+        const { title, message, audience, batchId, date, status, allMyBatches } = req.body;
         
-        let announcementData = { ...req.body };
-        
-        // If teacher is creating, enforce batchId
-        if (req.user && req.user.role === 'Teacher') {
-            if (!batchId) {
-                return res.status(400).json({ message: 'Teachers must specify a batch for an announcement' });
-            }
-            announcementData.audience = 'Student'; // Teacher announcements are for students
+        // Teacher: must specify batch OR allMyBatches
+        if (req.user && req.user.role === 'Teacher' && !batchId && !allMyBatches) {
+            return res.status(400).json({ message: 'Teachers must specify a batch for an announcement' });
         }
+
+        // For "All My Batches" teacher announcements, create one announcement per batch
+        if (req.user && req.user.role === 'Teacher' && allMyBatches) {
+            const teacherBatches = await Batch.findAll({ where: { teacherId: req.user.id }, attributes: ['id', 'batchName'] });
+            if (teacherBatches.length === 0) {
+                return res.status(400).json({ message: 'No batches assigned to you' });
+            }
+            // Create one announcement to represent "all batches" (no batchId)
+            const announcement = await Announcement.create({
+                title,
+                message,
+                audience: 'Students',
+                batchId: null,
+                date: date || null,
+                status: status || 'Published',
+                postedBy: req.user?.name || req.user?.id,
+                tenantId: req.user?.tenantId || null
+            });
+            // Notify all students across all teacher batches (exclude teacher/sender)
+            const allStudentIds = new Set();
+            for (const batch of teacherBatches) {
+                const ids = await getStudentIdsForBatch(batch.id);
+                ids.forEach(id => allStudentIds.add(id));
+            }
+            const senderName = req.user?.name || 'Your Teacher';
+            const notifBase = {
+                title: `📢 ${title}`,
+                message: `From ${senderName}: ${(message || '').substring(0, 180)}`,
+                type: 'announcement', referenceId: announcement.id,
+                link: '/student/announcements', read: false
+            };
+            await createUserNotifications([...allStudentIds], { ...notifBase, role: 'Student' }, req.user.id);
+            const result = await Announcement.findByPk(announcement.id, {
+                include: [{ model: Batch, as: 'batch', attributes: ['id', 'batchName'] }]
+            });
+            return res.status(201).json(result);
+        }
+
+        const announcementData = {
+            title,
+            message,
+            audience: req.user?.role === 'Teacher' ? 'Students' : (audience || 'All'),
+            batchId: batchId || null,
+            date: date || null,
+            status: status || 'Published',
+            postedBy: req.user?.name || req.user?.id,
+            tenantId: req.user?.tenantId || null
+        };
 
         const announcement = await Announcement.create(announcementData);
 
-        // Create Notification
-        let notifRole = announcement.audience === 'All' ? 'All' : announcement.audience;
-        if (req.user && req.user.role === 'Teacher') {
-            notifRole = 'Student';
-        }
-        
-        await Notification.create({
-            title: 'New Announcement',
-            message: announcement.title,
+        // ─── Create per-user notifications (sender excluded) ────
+        const senderName = req.user?.name || (req.user?.role === 'Admin' ? 'Admin' : 'Your Teacher');
+        const senderId = req.user?.id;
+
+        const notifBase = {
+            title: `📢 ${title}`,
+            message: `From ${senderName}: ${(message || '').substring(0, 180)}`,
             type: 'announcement',
-            role: notifRole,
-            batchId: announcement.batchId || null,
-            referenceId: announcement.id
-        });
+            referenceId: announcement.id,
+            link: '/student/announcements',
+            read: false
+        };
+
+        if (batchId) {
+            // Specific batch → notify all students in that batch (exclude sender)
+            const targetUserIds = await getStudentIdsForBatch(batchId);
+            await createUserNotifications(targetUserIds, { ...notifBase, batchId, role: 'Student' }, senderId);
+        } else if (audience === 'All' || announcementData.audience === 'All') {
+            // All users within tenant (students + teachers, NOT admin/sender)
+            const tenantId = req.user?.tenantId || null;
+            const studentIds = await getUserIdsByRole('Student', tenantId);
+            const teacherIds = await getUserIdsByRole('Teacher', tenantId);
+            const allIds = [...new Set([...studentIds, ...teacherIds])];
+            await createUserNotifications(allIds, { ...notifBase, role: 'All', batchId: null }, senderId);
+        } else if (audience === 'Students') {
+            // All students within tenant (exclude sender)
+            const targetUserIds = await getUserIdsByRole('Student', req.user?.tenantId || null);
+            await createUserNotifications(targetUserIds, { ...notifBase, role: 'Student' }, senderId);
+        } else if (audience === 'Teachers') {
+            // All teachers within tenant (exclude sender)
+            const targetUserIds = await getUserIdsByRole('Teacher', req.user?.tenantId || null);
+            await createUserNotifications(targetUserIds, { ...notifBase, role: 'Teacher' }, senderId);
+        } else {
+            // Fallback: per-user for the appropriate role within tenant
+            const tenantId = req.user?.tenantId || null;
+            const fallbackRole = req.user?.role === 'Teacher' ? 'Student' : 'All';
+            const fallbackIds = fallbackRole === 'Student'
+                ? await getUserIdsByRole('Student', tenantId)
+                : [...(await getUserIdsByRole('Student', tenantId)), ...(await getUserIdsByRole('Teacher', tenantId))];
+            await createUserNotifications([...new Set(fallbackIds)], { ...notifBase, role: fallbackRole, batchId: null }, senderId);
+        }
 
         const newAnnouncement = await Announcement.findByPk(announcement.id, {
             include: [{ model: Batch, as: 'batch', attributes: ['id', 'batchName'] }]
         });
 
+        if (req.user?.id && ['Admin', 'SuperAdmin'].includes(req.user?.role)) {
+            logAdminActivity(req.user.id, 'announcement', 'CREATE', `Admin created announcement "${title}"`, req.ip);
+        }
+
         res.status(201).json(newAnnouncement);
     } catch (err) {
+        console.error('createAnnouncement error:', err);
         res.status(400).json({ message: err.message });
     }
 };
 
 exports.deleteAnnouncement = async (req, res, next) => {
     try {
-        const announcement = await Announcement.findByPk(req.params.id);
+        const where = { id: req.params.id };
+        if (req.user?.role !== 'SuperAdmin' && req.user?.tenantId) where.tenantId = req.user.tenantId;
+        const announcement = await Announcement.findOne({ where });
         if (!announcement) return res.status(404).json({ message: 'Not found' });
         
-        // TODO: Ensure teacher can only delete their own announcements
-        
+        // Teacher can only delete their own announcements
+        if (req.user?.role === 'Teacher' && announcement.postedBy !== req.user.id && announcement.postedBy !== req.user.name) {
+            return res.status(403).json({ message: 'You can only delete your own announcements' });
+        }
+
+        // Delete associated notifications
+        await Notification.destroy({ where: { referenceId: req.params.id } });
+        const announcementTitle = announcement.title;
         await announcement.destroy();
+        if (req.user?.id && ['Admin', 'SuperAdmin'].includes(req.user?.role)) {
+            logAdminActivity(req.user.id, 'announcement', 'DELETE', `Admin deleted announcement "${announcementTitle}"`, req.ip);
+        }
         res.json({ message: 'Deleted' });
     } catch (err) {
         res.status(500).json({ message: err.message });

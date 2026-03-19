@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Setting = require('../models/Setting');
+const { protect, authorize } = require('../middlewares/authMiddleware');
+const logAdminActivity = require('../utils/logAdminActivity');
 
 // Get all settings or a specific key
 router.get('/', async (req, res) => {
@@ -17,7 +19,7 @@ router.get('/', async (req, res) => {
 });
 
 // Update or create setting
-router.post('/', async (req, res) => {
+router.post('/', protect, authorize('Admin', 'SuperAdmin'), async (req, res) => {
     try {
         const { key, value } = req.body;
         if (!key) return res.status(400).json({ success: false, message: 'Key is required' });
@@ -31,6 +33,8 @@ router.post('/', async (req, res) => {
             setting.value = value;
             await setting.save();
         }
+
+        logAdminActivity(req.user.id, 'settings', 'UPDATE', `Admin updated setting "${key}"`, req.ip);
 
         res.json({ success: true, setting });
     } catch (err) {

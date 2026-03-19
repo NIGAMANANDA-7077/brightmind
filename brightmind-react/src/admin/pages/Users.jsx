@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAdminGlobal } from '../context/AdminGlobalContext';
 import UserTable from '../components/users/UserTable';
 import AssignBatchModal from '../components/users/AssignBatchModal';
-import { Search, UserPlus, Filter, Layers, CheckSquare, Loader2 } from 'lucide-react';
+import { Search, UserPlus, Filter, Layers, CheckSquare, Loader2, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Users = () => {
@@ -24,6 +24,17 @@ const Users = () => {
 
     const [selectedIds, setSelectedIds] = useState([]);
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    const [toastMessage, setToastMessage] = useState(null);
+
+    const showToast = (msg) => {
+        setToastMessage(msg);
+        setTimeout(() => setToastMessage(null), 3000);
+    };
+
+    const handleDeleteUser = async (id) => {
+        await userActions.deleteUser(id);
+        showToast('User deleted successfully');
+    };
 
     // Derived Data
     const filteredUsers = users.filter(u => {
@@ -53,6 +64,13 @@ const Users = () => {
 
     return (
         <div className="space-y-6 animate-fadeIn max-w-[1600px]">
+            {/* Toast Notification */}
+            {toastMessage && (
+                <div className="fixed top-24 right-8 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-xl flex items-center gap-3 animate-slideIn z-50">
+                    <Check size={18} className="text-green-400" />
+                    {toastMessage}
+                </div>
+            )}
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
@@ -132,7 +150,7 @@ const Users = () => {
                         >
                             <option value="All">All Batches</option>
                             {batches.map(b => (
-                                <option key={b.id} value={b.name}>{b.name}</option>
+                                <option key={b.id} value={b.batchName || b.name}>{b.batchName || b.name}</option>
                             ))}
                         </select>
                     )}
@@ -157,7 +175,7 @@ const Users = () => {
                 users={filteredUsers}
                 roleFilter={activeTab}
                 onStatusChange={userActions.updateUserStatus}
-                onDelete={userActions.deleteUser}
+                onDelete={handleDeleteUser}
                 selectedIds={selectedIds}
                 onSelectionChange={setSelectedIds}
                 onAssignBatch={handleAssignBatch}

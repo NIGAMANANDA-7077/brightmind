@@ -28,14 +28,18 @@ api.interceptors.request.use(
     }
 );
 
-// Optional: Add response interceptor for global 401 handling
+// Response interceptor: on 401, clear stale token and redirect to login on protected routes
 api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response && error.response.status === 401) {
-            // Unauthenticated - might want to trigger logout event or redirect here
-            // But usually handled by context
             console.warn('Unauthorized request - Token may be expired');
+            const protectedPrefixes = ['/student', '/teacher', '/admin'];
+            const isProtected = protectedPrefixes.some(p => window.location.pathname.startsWith(p));
+            if (isProtected) {
+                localStorage.removeItem('brightmind_user');
+                window.location.href = '/login';
+            }
         }
         return Promise.reject(error);
     }

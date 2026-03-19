@@ -1,17 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const moduleController = require('../controllers/moduleController');
+const { protect } = require('../middlewares/authMiddleware');
 
-// POST a new module
-router.post('/', moduleController.createModule);
-
-// GET modules for a specific course
-router.get('/:courseId', moduleController.getModulesByCourse);
-
-// PUT update a module
-router.put('/:id', moduleController.updateModule);
-
-// DELETE a module
-router.delete('/:id', moduleController.deleteModule);
+router.post('/', protect, moduleController.createModule);
+router.get('/:courseId', protect, moduleController.getModulesByCourse);
+router.put('/:id', protect, moduleController.updateModule);
+router.delete('/:id', protect, moduleController.deleteModule);
 
 module.exports = router;

@@ -7,6 +7,10 @@ const Notification = sequelize.define('Notification', {
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true
     },
+    userId: {
+        type: DataTypes.UUID,
+        allowNull: true  // null = broadcast to role/batchId
+    },
     title: {
         type: DataTypes.STRING,
         allowNull: false
@@ -16,7 +20,7 @@ const Notification = sequelize.define('Notification', {
         allowNull: false
     },
     type: {
-        type: DataTypes.ENUM('info', 'success', 'warning', 'error'),
+        type: DataTypes.ENUM('info', 'success', 'warning', 'error', 'announcement', 'assignment', 'exam', 'discussion'),
         defaultValue: 'info'
     },
     batchId: {
@@ -32,6 +36,10 @@ const Notification = sequelize.define('Notification', {
         defaultValue: false
     },
     referenceId: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    link: {
         type: DataTypes.STRING,
         allowNull: true
     }

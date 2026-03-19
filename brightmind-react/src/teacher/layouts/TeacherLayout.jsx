@@ -20,7 +20,7 @@ const TeacherLayout = () => {
 
     return (
         <TeacherProvider>
-            <div className="flex bg-gray-50 min-h-screen">
+            <div className="flex theme-surface min-h-screen transition-colors duration-300">
                 {/* Sidebar */}
                 <Sidebar
                     isOpen={mobileSidebarOpen}

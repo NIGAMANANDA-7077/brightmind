@@ -1,84 +1,38 @@
-import React, { useState, useEffect } from 'react';
-import { Bell, Check, Clock, Calendar, CheckSquare, ArrowLeft, Search, Filter } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bell, Check, Clock, Calendar, CheckSquare, ArrowLeft, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { useSharedAnnouncements } from '../../context/SharedAnnouncementsContext';
+import { useNotifications } from '../../hooks/useNotifications';
 import AnnouncementDetailModal from '../../components/student/modals/AnnouncementDetailModal';
 
 const Notifications = () => {
-    const [notifications, setNotifications] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { notifications, markAsRead, markAllAsRead, refetch } = useNotifications();
+    const [loading] = useState(false);
     const [showAnnModal, setShowAnnModal] = useState(false);
     const [selectedAnn, setSelectedAnn] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [filter, setFilter] = useState('All'); // All, Unread, Read
-    const { announcements } = useSharedAnnouncements();
     const navigate = useNavigate();
 
-    const fetchNotifications = async () => {
-        try {
-            setLoading(true);
-            const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/notifications?role=Student`);
-            setNotifications(res.data);
-        } catch (err) {
-            console.error("Failed to fetch notifications", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchNotifications();
-    }, []);
-
-    const markAsRead = async (id) => {
-        try {
-            await axios.patch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/notifications/${id}/read`);
-            setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
     const handleNotificationClick = (notif) => {
-        if (!notif.read) {
-            markAsRead(notif.id);
+        if (!notif.read) markAsRead(notif.id);
+        // If notification has a link, navigate there
+        if (notif.link) {
+            navigate(notif.link);
+            return;
         }
-
-        let displayData = notif;
-        if (notif.referenceId) {
-            const foundAnn = announcements.find(a => a.id === notif.referenceId);
-            if (foundAnn) {
-                displayData = foundAnn;
-            }
-        }
-
-        setSelectedAnn(displayData);
+        setSelectedAnn({ title: notif.title, message: notif.message, createdAt: notif.createdAt });
         setShowAnnModal(true);
     };
 
     const filteredNotifications = notifications.filter(n => {
         const matchesSearch = n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             n.message.toLowerCase().includes(searchQuery.toLowerCase());
-
         if (filter === 'Unread') return matchesSearch && !n.read;
         if (filter === 'Read') return matchesSearch && n.read;
         return matchesSearch;
     });
 
-    const markAllAsRead = async () => {
-        const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
-        if (unreadIds.length === 0) return;
-
-        try {
-            await Promise.all(unreadIds.map(id =>
-                axios.patch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/notifications/${id}/read`)
-            ));
-            setNotifications(notifications.map(n => ({ ...n, read: true })));
-        } catch (err) {
-            console.error(err);
-        }
-    };
+    const unreadCount = notifications.filter(n => !n.read).length;
 
     return (
         <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-10">
@@ -95,7 +49,7 @@ const Notifications = () => {
                         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
                             Notifications
                             <span className="bg-[#8b5cf6]/10 text-[#8b5cf6] text-sm px-3 py-1 rounded-full font-bold">
-                                {notifications.filter(n => !n.read).length} Unread
+                                {unreadCount} Unread
                             </span>
                         </h1>
                         <p className="text-gray-500 dark:text-gray-400 mt-1">Stay updated with your latest alerts and announcements</p>

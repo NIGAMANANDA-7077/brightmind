@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Bell, Menu, X, CheckSquare, Sun, Moon, Check } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useSharedAnnouncements } from '../../context/SharedAnnouncementsContext';
 import AnnouncementDetailModal from './modals/AnnouncementDetailModal';
-import axios from 'axios';
+import { useNotifications } from '../../hooks/useNotifications';
 
 const Topbar = ({ onMenuClick }) => {
     const { user } = useUser();
     const { isDarkMode, toggleTheme } = useTheme();
     const { announcements } = useSharedAnnouncements();
-    const [notifications, setNotifications] = useState([]);
+    const navigate = useNavigate();
+    const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
     const [showNotifications, setShowNotifications] = useState(false);
     const [showAnnModal, setShowAnnModal] = useState(false);
     const [selectedAnn, setSelectedAnn] = useState(null);
@@ -28,49 +29,24 @@ const Topbar = ({ onMenuClick }) => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    useEffect(() => {
-        const fetchNotifications = async () => {
-            try {
-                // Fetch All & Student role notifications
-                const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/notifications?role=Student`);
-                setNotifications(res.data);
-            } catch (err) {
-                console.error("Failed to fetch notifications", err);
-            }
-        };
-
-        fetchNotifications();
-        const interval = setInterval(fetchNotifications, 30000);
-        return () => clearInterval(interval);
-    }, []);
-
-    const unreadCount = notifications.filter(n => !n.read).length;
-
-    const markAsRead = async (id) => {
-        try {
-            await axios.patch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/notifications/${id}/read`);
-            setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
     const handleNotificationClick = (notif) => {
-        if (!notif.read) {
-            markAsRead(notif.id);
+        if (!notif.read) markAsRead(notif.id);
+        setShowNotifications(false);
+
+        // If notification has a navigation link, go there
+        if (notif.link) {
+            navigate(notif.link);
+            return;
         }
 
+        // Otherwise show announcement detail modal (for announcement type)
         let displayData = notif;
         if (notif.referenceId) {
             const foundAnn = announcements.find(a => a.id === notif.referenceId);
-            if (foundAnn) {
-                displayData = foundAnn;
-            }
+            if (foundAnn) displayData = foundAnn;
         }
-
         setSelectedAnn(displayData);
         setShowAnnModal(true);
-        setShowNotifications(false);
     };
 
     return (
@@ -111,18 +87,32 @@ const Topbar = ({ onMenuClick }) => {
                     >
                         <Bell size={22} />
                         {unreadCount > 0 && (
-                            <span className="absolute top-1.5 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800"></span>
+                            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center px-0.5">
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
                         )}
                     </button>
 
                     {/* Dropdown overlay */}
                     {showNotifications && (
                         <div className="absolute right-0 mt-3 w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 py-4 z-50 animate-fade-in">
-                            <div className="px-6 pb-4 border-b border-gray-50 dark:border-gray-700 flex items-center justify-between">
-                                <h3 className="font-bold text-gray-900 dark:text-white">Notifications</h3>
-                                <button onClick={() => setShowNotifications(false)} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
-                                    <X size={18} />
-                                </button>
+                            <div className="px-6 pb-3 border-b border-gray-50 dark:border-gray-700 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <h3 className="font-bold text-gray-900 dark:text-white">Notifications</h3>
+                                    {unreadCount > 0 && (
+                                        <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">{unreadCount} new</span>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {unreadCount > 0 && (
+                                        <button onClick={markAllAsRead} className="text-xs text-[#8b5cf6] hover:text-purple-700 font-semibold" title="Mark all as read">
+                                            Mark all read
+                                        </button>
+                                    )}
+                                    <button onClick={() => setShowNotifications(false)} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
+                                        <X size={18} />
+                                    </button>
+                                </div>
                             </div>
                             <div className="max-h-[400px] overflow-y-auto">
                                 {notifications.filter(n => !n.read).length > 0 ? (

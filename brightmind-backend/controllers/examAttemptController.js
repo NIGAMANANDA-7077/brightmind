@@ -5,7 +5,9 @@ exports.startExam = async (req, res, next) => {
         const { examId } = req.params;
         const studentId = req.user.id;
 
-        const exam = await Exam.findByPk(examId);
+        const examWhere = { id: examId };
+        if (req.user.tenantId) examWhere.tenantId = req.user.tenantId;
+        const exam = await Exam.findOne({ where: examWhere });
         if (!exam) return res.status(404).json({ success: false, message: "Exam not found" });
 
         // Check if already attempted

@@ -50,11 +50,14 @@ exports.createLiveClass = async (req, res) => {
     try {
         const { courseId, batchId, title, description, meetingLink, classDate, startTime, duration } = req.body;
         const normalizedCourseId = normalizeId(courseId);
+        const tenantId = req.user.tenantId || null;
 
-        // Verify course ownership
-        const course = await Course.findByPk(normalizedCourseId);
+        // Verify course ownership and tenant
+        const courseWhere = { id: normalizedCourseId };
+        if (req.user.role !== 'SuperAdmin' && tenantId) courseWhere.tenantId = tenantId;
+        const course = await Course.findOne({ where: courseWhere });
         if (!course) return res.status(404).json({ message: 'Course not found' });
-        if (req.user.role !== 'Admin' && normalizeId(course.teacherId) !== normalizeId(req.user.id)) {
+        if (req.user.role !== 'Admin' && req.user.role !== 'SuperAdmin' && normalizeId(course.teacherId) !== normalizeId(req.user.id)) {
             return res.status(403).json({ message: 'Not authorized for this course' });
         }
 
@@ -69,7 +72,8 @@ exports.createLiveClass = async (req, res) => {
             meetingLink,
             classDate,
             startTime,
-            duration
+            duration,
+            tenantId
         });
 
         // Emit real-time update
@@ -88,7 +92,12 @@ exports.updateLiveClass = async (req, res) => {
     try {
         const liveClass = await LiveClass.findByPk(req.params.id);
         if (!liveClass) return res.status(404).json({ message: 'Live class not found' });
-        if (req.user.role !== 'Admin' && normalizeId(liveClass.teacherId) !== normalizeId(req.user.id)) {
+
+        // Tenant ownership check
+        if (req.user.role !== 'SuperAdmin' && req.user.tenantId && liveClass.tenantId && liveClass.tenantId !== req.user.tenantId) {
+            return res.status(403).json({ message: 'Access denied: wrong tenant' });
+        }
+        if (req.user.role !== 'Admin' && req.user.role !== 'SuperAdmin' && normalizeId(liveClass.teacherId) !== normalizeId(req.user.id)) {
             return res.status(403).json({ message: 'Not authorized' });
         }
 
@@ -111,8 +120,11 @@ exports.deleteLiveClass = async (req, res) => {
         const liveClass = await LiveClass.findByPk(req.params.id);
         if (!liveClass) return res.status(404).json({ message: 'Live class not found' });
 
-        // Ownership check: Teacher must own the course, Admin is allowed
-        if (req.user.role !== 'Admin' && liveClass.teacherId !== req.user.id) {
+        // Tenant ownership check
+        if (req.user.role !== 'SuperAdmin' && req.user.tenantId && liveClass.tenantId && liveClass.tenantId !== req.user.tenantId) {
+            return res.status(403).json({ message: 'Access denied: wrong tenant' });
+        }
+        if (req.user.role !== 'Admin' && req.user.role !== 'SuperAdmin' && liveClass.teacherId !== req.user.id) {
             return res.status(403).json({ message: 'Not authorized' });
         }
 
@@ -141,16 +153,14 @@ exports.getLiveClassesByCourse = async (req, res) => {
 
         const whereClause = { courseId };
 
+        // Tenant isolation
+        if (req.user.role !== 'SuperAdmin' && req.user.tenantId) {
+            whereClause.tenantId = req.user.tenantId;
+        }
+
         // Role-based Access Control
         if (req.user.role === 'Teacher') {
-            const course = await Course.findByPk(courseId, { attributes: ['id', 'teacherId'] });
-            if (!course) return res.status(404).json({ message: 'Course not found' });
-
-            if (normalizeId(course.teacherId) !== userId) {
-                return res.status(403).json({ message: 'Not authorized for this course' });
-            }
-
-            // Strict ownership: teacher only sees classes they own in this course.
+            // Strict ownership: teacher only sees classes they own
             whereClause.teacherId = userId;
             
             // Optional batch filtering for teachers
@@ -161,11 +171,15 @@ exports.getLiveClassesByCourse = async (req, res) => {
             const enrollment = await Enrollment.findOne({ where: { studentId: userId, courseId } });
             if (!enrollment) return res.status(403).json({ message: 'Not enrolled in this course' });
             
-            // Students only see live classes for their batch, plus global classes (batchId = null) for this course
+            // Fetch all batches this student belongs to
+            const BatchStudent = require('../models/BatchStudent');
+            const studentBatches = await BatchStudent.findAll({ where: { studentId: userId } });
+            const studentBatchIds = studentBatches.map(b => b.batchId);
+
             const { Op } = require('sequelize');
-            if (enrollment.batchId) {
+            if (studentBatchIds.length > 0) {
                 whereClause[Op.or] = [
-                    { batchId: enrollment.batchId },
+                    { batchId: { [Op.in]: studentBatchIds } },
                     { batchId: null }
                 ];
             } else {
@@ -214,17 +228,25 @@ exports.getLiveClassesForUser = async (req, res) => {
         const userId = normalizeId(req.user.id);
         const whereClause = {};
 
+        // Tenant isolation
+        if (req.user.role !== 'SuperAdmin' && req.user.tenantId) {
+            whereClause.tenantId = req.user.tenantId;
+        }
+
         if (req.user.role === 'Student') {
             const enrollments = await Enrollment.findAll({ where: { studentId: userId } });
             if (!enrollments.length) return res.json([]);
             
             const courseIds = enrollments.map(e => String(e.courseId));
-            const batchIds = enrollments.map(e => e.batchId).filter(id => id !== null && id !== undefined);
+            
+            const BatchStudent = require('../models/BatchStudent');
+            const studentBatches = await BatchStudent.findAll({ where: { studentId: userId } });
+            const studentBatchIds = studentBatches.map(b => b.batchId);
 
             const { Op } = require('sequelize');
             whereClause.courseId = { [Op.in]: courseIds };
             whereClause[Op.or] = [
-                { batchId: { [Op.in]: batchIds } },
+                { batchId: { [Op.in]: studentBatchIds } },
                 { batchId: null }
             ];
         } else if (req.user.role === 'Teacher') {
@@ -264,7 +286,13 @@ exports.getLiveClassesForUser = async (req, res) => {
 // Admin View-All (System dashboard)
 exports.getAdminLiveClasses = async (req, res) => {
     try {
+        const where = {};
+        if (req.user.role !== 'SuperAdmin' && req.user.tenantId) {
+            where.tenantId = req.user.tenantId;
+        }
+
         let liveClasses = await LiveClass.findAll({
+            where,
             include: [
                 { model: Course, as: 'course', attributes: ['id', 'title'] },
                 { model: User, as: 'teacher', attributes: ['id', 'name', 'avatar'] },
@@ -276,6 +304,7 @@ exports.getAdminLiveClasses = async (req, res) => {
         const updatedIds = await updateClassStatuses(liveClasses);
         if (updatedIds.length > 0) {
             liveClasses = await LiveClass.findAll({
+                where,
                 include: [
                     { model: Course, as: 'course', attributes: ['id', 'title'] },
                     { model: User, as: 'teacher', attributes: ['id', 'name', 'avatar'] },
@@ -300,8 +329,11 @@ exports.updateRecordingUrl = async (req, res) => {
         const liveClass = await LiveClass.findByPk(id);
         if (!liveClass) return res.status(404).json({ message: 'Live class not found' });
 
-        // Ownership check
-        if (req.user.role !== 'Admin' && liveClass.teacherId !== req.user.id) {
+        // Tenant ownership check
+        if (req.user.role !== 'SuperAdmin' && req.user.tenantId && liveClass.tenantId && liveClass.tenantId !== req.user.tenantId) {
+            return res.status(403).json({ message: 'Access denied: wrong tenant' });
+        }
+        if (req.user.role !== 'Admin' && req.user.role !== 'SuperAdmin' && liveClass.teacherId !== req.user.id) {
             return res.status(403).json({ message: 'Not authorized' });
         }
 

@@ -7,12 +7,12 @@ const Login = () => {
     const navigate = useNavigate();
     const [selectedRole, setSelectedRole] = useState('Student');
     const [formData, setFormData] = useState({
-        email: '',
+        identifier: '',
         password: ''
     });
     const [errors, setErrors] = useState({});
 
-    const { login } = useUser();
+    const { login, studentLogin } = useUser();
 
     const roles = [
         { id: 'Student', icon: User, color: 'text-blue-500', bg: 'bg-blue-50', border: 'border-blue-200', activeBorder: 'border-blue-500' },
@@ -31,15 +31,10 @@ const Login = () => {
         e.preventDefault();
         setErrors({});
 
-        const result = await login(formData.email, formData.password);
+        // Send email, password, AND the selected role — enforced strictly by the backend
+        const result = await login(formData.identifier, formData.password, selectedRole);
 
         if (result.success) {
-            // Verify roles match what they selected (optional but good UX)
-            if (result.role !== selectedRole) {
-                // To keep it simple, just log them in to their actual role's dashboard
-                console.warn(`User logged in as ${result.role} despite selecting ${selectedRole}`);
-            }
-
             switch (result.role) {
                 case 'Student':
                     navigate('/student/dashboard');
@@ -50,35 +45,45 @@ const Login = () => {
                 case 'Admin':
                     navigate('/admin/dashboard');
                     break;
+                case 'SuperAdmin':
+                    navigate('/admin/admin-management');
+                    break;
                 default:
                     navigate('/');
             }
         } else {
-            setErrors({ auth: result.message || 'Invalid credentials' });
+            // Show a clear role-mismatch message when the backend rejects due to wrong role
+            const isRoleMismatch = result.message === 'Invalid role selected for this account';
+            setErrors({
+                auth: isRoleMismatch
+                    ? `You are trying to log in as the wrong role. Please select "${selectedRole}" only if your account has that role.`
+                    : result.message || 'Invalid credentials',
+                suspended: result.suspended
+            });
         }
     };
 
     const handleDemoLogin = () => {
-        let email = '';
-        if (selectedRole === 'Admin') email = 'admin@brightmind.com';
-        if (selectedRole === 'Teacher') email = 'ananay@brightmind.com';
-        if (selectedRole === 'Student') email = 'priya@student.com';
+        let identifier = '';
+        if (selectedRole === 'Admin')   identifier = 'admin@brightmind.com';
+        if (selectedRole === 'Teacher') identifier = 'ananay@brightmind.com';
+        if (selectedRole === 'Student') identifier = 'priya@student.com';
 
         setFormData({
-            email,
+            identifier,
             password: 'password123'
         });
         setErrors({});
     };
 
     return (
-        <div className="min-h-screen pt-24 pb-12 bg-[#fbfbfb] flex items-center justify-center px-4">
-            <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 max-w-lg w-full overflow-hidden">
+        <div className="min-h-screen pt-24 pb-12 theme-surface flex items-center justify-center px-4 transition-colors duration-300">
+            <div className="theme-card rounded-[2rem] shadow-xl max-w-lg w-full overflow-hidden">
 
                 {/* Header */}
                 <div className="text-center pt-10 pb-6 px-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-                    <p className="text-gray-500">Please select your role to login</p>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Welcome Back</h1>
+                    <p className="text-gray-500 dark:text-gray-400">Please select your role to login</p>
                 </div>
 
                 {/* Role Selector */}
@@ -96,14 +101,14 @@ const Login = () => {
                                         setErrors({});
                                     }}
                                     className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all duration-300 ${isSelected
-                                        ? `${role.activeBorder} ${role.bg}`
-                                        : 'border-gray-100 hover:border-gray-200 bg-white'
+                                        ? `${role.activeBorder} bg-[color:var(--bg-primary)]`
+                                        : 'border-[color:var(--border-color)] hover:border-[#8b5cf6] bg-[color:var(--card-bg)]'
                                         }`}
                                 >
-                                    <div className={`p-2 rounded-full mb-2 ${isSelected ? 'bg-white' : role.bg}`}>
+                                    <div className={`p-2 rounded-full mb-2 ${isSelected ? 'bg-[color:var(--card-bg)]' : role.bg}`}>
                                         <Icon className={`w-5 h-5 ${role.color}`} />
                                     </div>
-                                    <span className={`text-sm font-bold ${isSelected ? 'text-gray-900' : 'text-gray-500'}`}>
+                                    <span className={`text-sm font-bold ${isSelected ? 'text-[color:var(--text-primary)]' : 'text-[color:var(--text-secondary)]'}`}>
                                         {role.id}
                                     </span>
                                 </button>
@@ -113,32 +118,30 @@ const Login = () => {
                 </div>
 
                 {/* Login Form */}
-                <div className="bg-gray-50 p-8 md:p-10 border-t border-gray-100">
+                <div className="bg-[color:var(--bg-secondary)] p-8 md:p-10 border-t border-[color:var(--border-color)] transition-colors duration-300">
                     <form onSubmit={handleLogin} className="space-y-5">
                         <div className="space-y-2">
-                            <label className="text-sm font-bold text-gray-900 ml-1">Email Address</label>
+                            <label className="text-sm font-bold text-[color:var(--text-primary)] ml-1">
+                                Email Address
+                            </label>
                             <input
                                 type="email"
-                                name="email"
-                                value={formData.email}
+                                name="identifier"
+                                value={formData.identifier}
                                 onChange={handleChange}
                                 placeholder="Enter your email"
-                                className={`w-full px-5 py-4 rounded-xl bg-white border outline-none transition-all placeholder:text-gray-400 font-medium ${errors.email
-                                    ? 'border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-500/10'
-                                    : 'border-gray-200 focus:border-[#8b5cf6] focus:ring-4 focus:ring-[#8b5cf6]/10'
+                                className={`w-full px-5 py-4 rounded-xl input-surface border outline-none transition-all placeholder:text-gray-400 font-medium ${
+                                    errors.auth
+                                        ? 'border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-500/10'
+                                        : 'border-[color:var(--border-color)] focus:border-[#8b5cf6] focus:ring-4 focus:ring-[#8b5cf6]/10'
                                     }`}
                                 required
                             />
-                            {errors.email && (
-                                <p className="text-red-500 text-sm ml-1 font-medium animate-pulse">
-                                    {errors.email}
-                                </p>
-                            )}
                         </div>
 
                         <div className="space-y-2">
                             <div className="flex justify-between items-center ml-1">
-                                <label className="text-sm font-bold text-gray-900">Password</label>
+                                <label className="text-sm font-bold text-[color:var(--text-primary)]">Password</label>
                                 <a href="#" className="text-sm font-semibold text-[#8b5cf6] hover:text-[#7c3aed]">Forgot Password?</a>
                             </div>
                             <input
@@ -147,9 +150,9 @@ const Login = () => {
                                 value={formData.password}
                                 onChange={handleChange}
                                 placeholder="Enter your password"
-                                className={`w-full px-5 py-4 rounded-xl bg-white border outline-none transition-all placeholder:text-gray-400 font-medium ${errors.password
+                                className={`w-full px-5 py-4 rounded-xl input-surface border outline-none transition-all placeholder:text-gray-400 font-medium ${errors.password
                                     ? 'border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-500/10'
-                                    : 'border-gray-200 focus:border-[#8b5cf6] focus:ring-4 focus:ring-[#8b5cf6]/10'
+                                    : 'border-[color:var(--border-color)] focus:border-[#8b5cf6] focus:ring-4 focus:ring-[#8b5cf6]/10'
                                     }`}
                                 required
                             />
@@ -159,7 +162,7 @@ const Login = () => {
                                 </p>
                             )}
                             {errors.auth && (
-                                <p className="text-red-500 text-sm ml-1 font-bold animate-pulse text-center mt-2">
+                                <p className={`text-sm ml-1 font-bold animate-pulse text-center mt-2 ${errors.suspended ? 'text-amber-600' : 'text-red-500'}`}>
                                     {errors.auth}
                                 </p>
                             )}
@@ -167,22 +170,22 @@ const Login = () => {
 
                         <button
                             type="submit"
-                            className="w-full bg-[#8b5cf6] hover:bg-[#7c3aed] text-white py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 mt-4"
+                            className="w-full btn-gradient hover:brightness-110 text-white py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 mt-4"
                         >
-                            Log In as {selectedRole}
+                            Login as {selectedRole}
                         </button>
 
                         <button
                             type="button"
                             onClick={handleDemoLogin}
-                            className="w-full bg-white border-2 border-dashed border-gray-300 text-gray-500 hover:border-[#8b5cf6] hover:text-[#8b5cf6] py-3 rounded-xl font-bold text-base transition-all mt-4"
+                            className="w-full bg-[color:var(--card-bg)] border-2 border-dashed border-[color:var(--border-color)] text-[color:var(--text-secondary)] hover:border-[#8b5cf6] hover:text-[#8b5cf6] py-3 rounded-xl font-bold text-base transition-all mt-4"
                         >
                             Auto-Fill Demo Credentials
                         </button>
                     </form>
 
                     <div className="mt-8 text-center">
-                        <p className="text-gray-500 font-medium">
+                        <p className="text-[color:var(--text-secondary)] font-medium">
                             Don't have an account?{' '}
                             <Link to="/contact" className="text-[#8b5cf6] font-bold hover:underline">
                                 Contact Support

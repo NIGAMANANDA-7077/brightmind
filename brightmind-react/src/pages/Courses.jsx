@@ -1,28 +1,67 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, BookOpen } from 'lucide-react';
-import { publicCourses } from '../data/publicCoursesMock';
 import PublicCourseCard from '../components/public/PublicCourseCard';
 import CTASection from '../components/CTASection';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
 
+const DEFAULT_THUMBNAIL = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop&q=60';
+
+// Normalise a backend course to the shape PublicCourseCard expects
+function normalise(c) {
+    return {
+        id: c.id,
+        title: c.title,
+        subtitle: c.description || '',
+        category: c.subject || c.category || 'General',
+        level: c.level || 'Beginner',
+        thumbnail: c.thumbnail || DEFAULT_THUMBNAIL,
+        rating: c.rating || 0,
+        reviewsCount: c.reviewsCount || 0,
+        price: Number(c.price) || 0,
+        instructor: {
+            name: c.createdByAdminName || c.instructor || 'Admin',
+            avatar: c.instructorAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.createdByAdminName || 'Admin')}&background=random`,
+        },
+    };
+}
+
 const Courses = () => {
     const [headerRef, headerVisible] = useScrollAnimation({ threshold: 0.1, once: true });
 
-    // Filters State
-    const [searchQuery, setSearchQuery] = useState('');
+    const [courses, setCourses]           = useState([]);
+    const [loading, setLoading]           = useState(true);
+    const [error, setError]               = useState(null);
+    const [searchQuery, setSearchQuery]   = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
-    const [selectedLevel, setSelectedLevel] = useState('All');
+    const [selectedLevel, setSelectedLevel]       = useState('All');
 
-    const categories = ['All', 'Design', 'Development', 'Marketing', 'Data Science'];
-    const levels = ['All', 'Beginner', 'Intermediate'];
+    useEffect(() => {
+        const fetchCourses = async () => {
+            try {
+                setLoading(true);
+                const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/courses/public`);
+                if (!res.ok) throw new Error('Failed to fetch courses');
+                const data = await res.json();
+                setCourses((data || []).map(normalise));
+            } catch (err) {
+                console.error('Failed to load courses:', err);
+                setError('Failed to load courses. Please try again later.');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchCourses();
+    }, []);
 
-    // Filter Logic
-    const filteredCourses = publicCourses.filter(course => {
+    // Derive dynamic categories from fetched courses
+    const dynamicCategories = ['All', ...new Set(courses.map(c => c.category).filter(Boolean))];
+    const categories = dynamicCategories.length > 1 ? dynamicCategories : ['All', 'Design', 'Development', 'Marketing', 'Data Science'];
+
+    const filteredCourses = courses.filter(course => {
         const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            course.subtitle.toLowerCase().includes(searchQuery.toLowerCase());
+            (course.subtitle || '').toLowerCase().includes(searchQuery.toLowerCase());
         const matchesCategory = selectedCategory === 'All' || course.category === selectedCategory;
         const matchesLevel = selectedLevel === 'All' || course.level === selectedLevel;
-
         return matchesSearch && matchesCategory && matchesLevel;
     });
 
@@ -95,7 +134,16 @@ const Courses = () => {
                     </div>
 
                     {/* Results Grid */}
-                    {filteredCourses.length > 0 ? (
+                    {loading ? (
+                        <div className="text-center py-20">
+                            <div className="w-12 h-12 border-4 border-[#8b5cf6] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                            <p className="text-gray-500">Loading courses...</p>
+                        </div>
+                    ) : error ? (
+                        <div className="text-center py-20">
+                            <p className="text-red-500">{error}</p>
+                        </div>
+                    ) : filteredCourses.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                             {filteredCourses.map((course) => (
                                 <PublicCourseCard key={course.id} course={course} />
@@ -106,9 +154,13 @@ const Courses = () => {
                             <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <Search size={32} className="text-gray-300" />
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">No courses found</h3>
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">
+                                {courses.length === 0 ? 'No courses available yet' : 'No courses found'}
+                            </h3>
                             <p className="text-gray-500">
-                                Try adjusting your search or filters to find what you're looking for.
+                                {courses.length === 0
+                                    ? 'Check back later — new courses are being added.'
+                                    : 'Try adjusting your search or filters to find what you\'re looking for.'}
                             </p>
                             <button
                                 onClick={() => { setSearchQuery(''); setSelectedCategory('All'); setSelectedLevel('All'); }}

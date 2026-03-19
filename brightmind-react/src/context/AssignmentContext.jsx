@@ -1,11 +1,13 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import api from '../utils/axiosConfig';
+import { useUser } from './UserContext';
 
 const AssignmentContext = createContext();
 
 export const useAssignment = () => useContext(AssignmentContext);
 
 export const AssignmentProvider = ({ children }) => {
+    const { user, loading: userLoading } = useUser();
     const [assignments, setAssignments] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -21,8 +23,14 @@ export const AssignmentProvider = ({ children }) => {
     };
 
     useEffect(() => {
-        fetchAssignments();
-    }, []);
+        if (!userLoading) {
+            if (user) {
+                fetchAssignments();
+            } else {
+                setLoading(false);
+            }
+        }
+    }, [user, userLoading]);
 
     const getAssignment = (id) => {
         return assignments.find(a => a.id === id);
@@ -41,6 +49,8 @@ export const AssignmentProvider = ({ children }) => {
                     ...a,
                     status: res.data.status,
                     submissionDate: res.data.submittedAt,
+                    grade: res.data.grade,
+                    feedback: res.data.feedback,
                     studentSubmission: res.data
                 } : a
             ));
@@ -53,7 +63,7 @@ export const AssignmentProvider = ({ children }) => {
     };
 
     const submitFileAssignment = (id, fileName) => {
-        return submitAssignment(id, { fileName });
+        return submitAssignment(id, { fileUrl: fileName });
     };
 
     const submitWrittenAssignment = (id, content) => {
@@ -69,9 +79,11 @@ export const AssignmentProvider = ({ children }) => {
             assignments,
             loading,
             getAssignment,
+            submitAssignment,
             submitFileAssignment,
             submitWrittenAssignment,
-            submitOMR
+            submitOMR,
+            fetchAssignments
         }}>
             {children}
         </AssignmentContext.Provider>

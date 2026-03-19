@@ -46,6 +46,22 @@ const Assignment = sequelize.define('Assignment', {
     batchId: {
         type: DataTypes.UUID,
         allowNull: true
+    },
+    teacherId: {
+        type: DataTypes.UUID,
+        allowNull: true
+    },
+    description: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    allowLateSubmission: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
+    tenantId: {
+        type: DataTypes.UUID,
+        allowNull: true
     }
 }, {
     timestamps: true

@@ -30,7 +30,10 @@ const Announcements = () => {
             setFormError('Title, message, and batch are required.'); 
             return; 
         }
-        addAnnouncement({ ...form, audience: 'Student' }); // Teacher posts are always for students
+        const payload = form.batchId === '__all__'
+            ? { title: form.title, message: form.message, date: form.date, audience: 'Student', allMyBatches: true }
+            : { ...form, audience: 'Student' };
+        addAnnouncement(payload);
         setForm({ title: '', message: '', batchId: '', date: '' });
         setFormError('');
         setShowForm(false);
@@ -113,6 +116,7 @@ const Announcements = () => {
                                     <label className="block text-xs font-bold text-gray-500 mb-1">Select Batch</label>
                                     <select required className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#8b5cf6]/20" value={form.batchId} onChange={e => setForm(p => ({ ...p, batchId: e.target.value }))}>
                                         <option value="">-- Choose Batch --</option>
+                                        <option value="__all__">📢 All My Batches</option>
                                         {myBatches.map(b => (
                                             <option key={b.id} value={b.id}>{b.batchName} ({b.course?.title})</option>
                                         ))}

@@ -14,7 +14,7 @@ const StudentLayout = () => {
     }
 
     return (
-        <div className="min-h-screen bg-[#f8f9fc] flex">
+        <div className="min-h-screen theme-surface flex transition-colors duration-300">
             {/* Sidebar */}
             <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 

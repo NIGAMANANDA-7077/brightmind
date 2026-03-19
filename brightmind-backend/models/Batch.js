@@ -34,6 +34,10 @@ const Batch = sequelize.define('Batch', {
     description: {
         type: DataTypes.TEXT,
         allowNull: true
+    },
+    tenantId: {
+        type: DataTypes.UUID,
+        allowNull: true
     }
 }, {
     tableName: 'batches',

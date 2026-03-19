@@ -1,246 +1,298 @@
-import React, { useState } from 'react';
-import { useAdminGlobal } from '../context/AdminGlobalContext';
+import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from '../../context/UserContext';
+import { useTheme } from '../../context/ThemeContext';
 import api from '../../utils/axiosConfig';
-import { Save, Lock, Bell, Palette, Globe, Shield, User, Camera, Loader2 } from 'lucide-react';
+import {
+    User, Globe, Camera, Loader2, Check, X, Sun, Moon,
+} from 'lucide-react';
 
-const AdminSettingsPage = () => {
-    const { settings, updateSettings } = useAdminGlobal();
-    const { user, updateUser } = useUser();
-    const [activeTab, setActiveTab] = useState('Profile');
-    const [profileForm, setProfileForm] = useState({
-        name: user?.name || '',
-        email: user?.email || '',
-        avatar: user?.avatar || ''
-    });
-    const [uploading, setUploading] = useState(false);
-    const fileInputRef = React.useRef(null);
+// ── Toast ──────────────────────────────────────────────────────────────────────
+const Toast = ({ toast }) => {
+    if (!toast) return null;
+    return (
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl text-sm font-bold transition-all
+            ${toast.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+            {toast.type === 'success' ? <Check size={16} /> : <X size={16} />}
+            {toast.message}
+        </div>
+    );
+};
 
-    const handleSave = async () => {
-        if (activeTab === 'Profile') {
-            await updateUser(profileForm);
-            alert('Profile updated successfully!');
-        } else {
-            alert('Settings saved successfully!');
-        }
+// ── Shared UI ──────────────────────────────────────────────────────────────────
+const Field = ({ label, hint, children }) => (
+    <div className="space-y-1.5">
+        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">{label}</label>
+        {children}
+        {hint && <p className="text-xs text-gray-400">{hint}</p>}
+    </div>
+);
+
+const TextInput = ({ readOnly, className = '', ...props }) => (
+    <input
+        readOnly={readOnly}
+        {...props}
+        className={`w-full px-4 py-2.5 rounded-xl border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 focus:border-[#8b5cf6]
+            ${readOnly ? 'bg-gray-50 border-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white border-gray-200 text-gray-900'}
+            ${className}`}
+    />
+);
+
+const SaveButton = ({ loading }) => (
+    <button
+        type="submit"
+        disabled={loading}
+        className="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-[#8b5cf6] text-white font-bold text-sm hover:bg-[#7c3aed] transition-all shadow-lg shadow-purple-500/20 disabled:opacity-50"
+    >
+        {loading ? <><Loader2 size={16} className="animate-spin" />Saving…</> : 'Save Changes'}
+    </button>
+);
+
+// ──────────────────────────────────────────────────────────────────────────────
+const AdminSettings = () => {
+    const { user, refreshUser } = useUser();
+    const { isDarkMode, setTheme } = useTheme();
+    const [tab, setTab] = useState('Profile');
+    const [toast, setToast] = useState(null);
+
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
     };
 
-    const handleImageUpload = async (e) => {
+    const tabs = [
+        { id: 'Profile', icon: User },
+        { id: 'System',  icon: Globe },
+    ];
+
+    // ── Profile ───────────────────────────────────────────────────────────────
+    const fileRef = useRef(null);
+    const [profileLoading, setProfileLoading] = useState(false);
+    const [profile, setProfile] = useState({ name: user?.name || '', avatar: user?.avatar || '' });
+    const [uploading, setUploading] = useState(false);
+
+    const uploadAvatar = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
-        const formData = new FormData();
-        formData.append('file', file);
-
+        const fd = new FormData();
+        fd.append('file', file);
+        setUploading(true);
         try {
-            setUploading(true);
-            const res = await api.post('/upload', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            const res = await api.post('/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
             if (res.data.success) {
-                const newAvatar = res.data.url;
-                setProfileForm(prev => ({ ...prev, avatar: newAvatar }));
+                setProfile(p => ({ ...p, avatar: res.data.url }));
+                showToast('Photo uploaded!');
             }
-        } catch (err) {
-            console.error("Upload failed", err);
-            alert("Failed to upload image");
+        } catch {
+            showToast('Failed to upload photo.', 'error');
         } finally {
             setUploading(false);
         }
     };
 
-    const tabs = [
-        { id: 'Profile', icon: User, label: 'My Profile' },
-        { id: 'General', icon: Globe, label: 'General' },
-        { id: 'Security', icon: Shield, label: 'Security' },
-        { id: 'Notifications', icon: Bell, label: 'Notifications' },
-    ];
+    const saveProfile = async (e) => {
+        e.preventDefault();
+        setProfileLoading(true);
+        try {
+            await api.patch('/admin/profile', { name: profile.name, avatar: profile.avatar });
+            await refreshUser();
+            showToast('Profile updated successfully!');
+        } catch {
+            showToast('Failed to update profile.', 'error');
+        } finally {
+            setProfileLoading(false);
+        }
+    };
+
+    // ── System Settings ───────────────────────────────────────────────────────
+    const [sysLoading, setSysLoading] = useState(false);
+    const [system, setSystem] = useState({ lmsName: '', timezone: 'IST', supportEmail: '' });
+    const [themeLoading, setThemeLoading] = useState(false);
+
+    useEffect(() => {
+        api.get('/admin/settings/system')
+            .then(res => { if (res.data.success) setSystem(res.data.data); })
+            .catch(() => {});
+    }, []);
+
+    const saveSystem = async (e) => {
+        e.preventDefault();
+        setSysLoading(true);
+        try {
+            await api.patch('/admin/settings/system', system);
+            showToast('System settings saved!');
+        } catch {
+            showToast('Failed to save system settings.', 'error');
+        } finally {
+            setSysLoading(false);
+        }
+    };
+
+    const handleThemeToggle = async () => {
+        const nextTheme = isDarkMode ? 'light' : 'dark';
+        setTheme(nextTheme);
+        setThemeLoading(true);
+        try {
+            await api.put('/users/theme', { theme: nextTheme });
+            showToast(`Switched to ${nextTheme === 'dark' ? 'Dark' : 'Light'} mode`);
+        } catch {
+            showToast('Failed to update theme preference.', 'error');
+        } finally {
+            setThemeLoading(false);
+        }
+    };
+
 
     return (
-        <div className="max-w-4xl mx-auto animate-fadeIn">
-            <div className="mb-8">
-                <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-                <p className="text-gray-500">Manage system-wide configurations and preferences</p>
+        <div className="max-w-4xl mx-auto pb-12">
+            <Toast toast={toast} />
+
+            {/* Header */}
+            <div className="mb-6">
+                <h1 className="text-2xl font-black text-gray-900">Settings</h1>
+                <p className="text-sm text-gray-400 mt-1">Manage system configuration and admin preferences</p>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-8">
-                {/* Sidebar Tabs */}
-                <div className="w-full md:w-64 flex-shrink-0">
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                        {tabs.map((tab) => (
+            <div className="flex flex-col md:flex-row gap-6">
+                {/* ── Sidebar ─────────────────────────────────────────────── */}
+                <aside className="w-full md:w-52 shrink-0">
+                    <nav className="bg-white rounded-2xl border border-gray-100 shadow-sm p-2 space-y-0.5">
+                        {tabs.map(({ id, icon: Icon }) => (
                             <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`w-full flex items-center gap-3 px-6 py-4 text-sm font-medium transition-all
-                    ${activeTab === tab.id
-                                        ? 'bg-[#8b5cf6]/5 text-[#8b5cf6] border-l-4 border-[#8b5cf6]'
-                                        : 'text-gray-600 hover:bg-gray-50 border-l-4 border-transparent'}
-                  `}
+                                key={id}
+                                onClick={() => setTab(id)}
+                                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold transition-all
+                                    ${tab === id
+                                        ? 'bg-[#8b5cf6]/10 text-[#8b5cf6]'
+                                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'}`}
                             >
-                                <tab.icon size={18} />
-                                {tab.label}
+                                <Icon size={16} />
+                                {id}
                             </button>
                         ))}
-                    </div>
-                </div>
+                    </nav>
+                </aside>
 
-                {/* Content Area */}
-                <div className="flex-1">
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-                        {activeTab === 'Profile' && (
-                            <div className="space-y-8 animate-fadeIn">
-                                <div className="flex flex-col items-center border-b border-gray-50 pb-8">
-                                    <div className="relative group">
-                                        <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full blur opacity-25 group-hover:opacity-40 transition-opacity" />
-                                        <img
-                                            src={profileForm.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=100&q=80"}
-                                            alt="Profile"
-                                            className="relative w-32 h-32 rounded-full border-4 border-white shadow-xl object-cover"
-                                        />
-                                        <button
-                                            onClick={() => fileInputRef.current?.click()}
-                                            disabled={uploading}
-                                            className="absolute bottom-1 right-1 p-2.5 bg-white rounded-full shadow-lg border border-gray-100 text-[#8b5cf6] hover:scale-110 transition-transform disabled:opacity-50"
-                                        >
-                                            {uploading ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />}
-                                        </button>
-                                        <input
-                                            type="file"
-                                            ref={fileInputRef}
-                                            className="hidden"
-                                            accept="image/*"
-                                            onChange={handleImageUpload}
-                                        />
-                                    </div>
-                                    <div className="mt-4 text-center">
-                                        <h3 className="text-xl font-bold text-gray-900">{profileForm.name}</h3>
-                                        <p className="text-sm text-gray-500 font-medium">Administrator</p>
-                                    </div>
-                                </div>
+                {/* ── Panel ───────────────────────────────────────────────── */}
+                <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest pl-1">Full Name</label>
-                                        <input
-                                            type="text"
-                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all font-medium"
-                                            value={profileForm.name}
-                                            onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest pl-1">Email Address</label>
-                                        <input
-                                            type="email"
-                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all font-medium"
-                                            value={profileForm.email}
-                                            onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                    {/* ─── PROFILE ──────────────────────────────────────────── */}
+                    {tab === 'Profile' && (
+                        <form onSubmit={saveProfile} className="space-y-6 max-w-md">
+                            <h2 className="text-base font-black text-gray-900">Profile</h2>
 
-                        {activeTab === 'General' && (
-                            <div className="space-y-6 animate-fadeIn">
-                                <h2 className="text-lg font-bold text-gray-900 mb-4">General Settings</h2>
-
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">LMS Name</label>
-                                    <input
-                                        type="text"
-                                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all"
-                                        value={settings.lmsName}
-                                        onChange={(e) => updateSettings({ lmsName: e.target.value })}
+                            {/* Avatar */}
+                            <div className="flex items-center gap-5">
+                                <div className="relative">
+                                    <img
+                                        src={profile.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user?.name || 'Admin')}`}
+                                        alt="avatar"
+                                        className="w-20 h-20 rounded-full object-cover border-2 border-white shadow-md"
                                     />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Default Timezone</label>
-                                    <select
-                                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all"
-                                        value={settings.timezone}
-                                        onChange={(e) => updateSettings({ timezone: e.target.value })}
+                                    <button
+                                        type="button"
+                                        onClick={() => fileRef.current?.click()}
+                                        disabled={uploading}
+                                        className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#8b5cf6] text-white rounded-full flex items-center justify-center hover:bg-[#7c3aed] transition-colors shadow disabled:opacity-50"
                                     >
-                                        <option value="IST">India Standard Time (IST)</option>
-                                        <option value="UTC">Coordinated Universal Time (UTC)</option>
-                                        <option value="EST">Eastern Standard Time (EST)</option>
-                                    </select>
+                                        {uploading ? <Loader2 size={13} className="animate-spin" /> : <Camera size={13} />}
+                                    </button>
+                                    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={uploadAvatar} />
                                 </div>
-                            </div>
-                        )}
-
-                        {activeTab === 'Security' && (
-                            <div className="space-y-6 animate-fadeIn">
-                                <h2 className="text-lg font-bold text-gray-900 mb-4">Security Settings</h2>
-
-                                <div className="flex items-center justify-between py-4 border-b border-gray-100">
-                                    <div>
-                                        <p className="font-bold text-gray-900">Two-Factor Authentication</p>
-                                        <p className="text-xs text-gray-500">Require 2FA for all admin accounts</p>
-                                    </div>
-                                    <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
-                                        <input type="checkbox" name="toggle" id="toggle" className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" />
-                                        <label htmlFor="toggle" className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
-                                    </div>
-                                </div>
-
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Password Policy</label>
-                                    <select
-                                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all"
-                                        value={settings.passwordPolicy}
-                                        onChange={(e) => updateSettings({ passwordPolicy: e.target.value })}
-                                    >
-                                        <option value="Strong">Strong (Min 10 chars, special char)</option>
-                                        <option value="Medium">Medium (Min 8 chars)</option>
-                                        <option value="Weak">Weak (Min 6 chars)</option>
-                                    </select>
+                                    <p className="font-bold text-gray-900">{user?.name}</p>
+                                    <p className="text-xs text-gray-400 mt-0.5">Click the camera icon to update photo</p>
                                 </div>
                             </div>
-                        )}
 
-                        {activeTab === 'Notifications' && (
-                            <div className="space-y-6 animate-fadeIn">
-                                <h2 className="text-lg font-bold text-gray-900 mb-4">Notification Preferences</h2>
+                            <Field label="Full Name">
+                                <TextInput
+                                    type="text"
+                                    value={profile.name}
+                                    onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
+                                    placeholder="Admin full name"
+                                    required
+                                />
+                            </Field>
 
-                                <div className="space-y-4">
-                                    <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
-                                        <input
-                                            type="checkbox"
-                                            checked={settings.notifications.email}
-                                            onChange={(e) => updateSettings({ notifications: { ...settings.notifications, email: e.target.checked } })}
-                                            className="w-5 h-5 text-[#8b5cf6] rounded focus:ring-[#8b5cf6]"
-                                        />
-                                        <span className="font-medium text-gray-700">Email Notifications</span>
-                                    </label>
-                                    <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
-                                        <input
-                                            type="checkbox"
-                                            checked={settings.notifications.sms}
-                                            onChange={(e) => updateSettings({ notifications: { ...settings.notifications, sms: e.target.checked } })}
-                                            className="w-5 h-5 text-[#8b5cf6] rounded focus:ring-[#8b5cf6]"
-                                        />
-                                        <span className="font-medium text-gray-700">SMS Notifications</span>
-                                    </label>
-                                </div>
+                            <Field label="Email Address" hint="Email cannot be changed">
+                                <TextInput type="email" value={user?.email || ''} readOnly />
+                            </Field>
+
+                            <Field label="Role">
+                                <TextInput type="text" value={user?.role === 'SuperAdmin' ? 'Super Admin' : 'Admin'} readOnly />
+                            </Field>
+
+                            <div className="pt-2">
+                                <SaveButton loading={profileLoading} />
                             </div>
-                        )}
+                        </form>
+                    )}
+
+                    {/* ─── SYSTEM ───────────────────────────────────────────── */}
+                    {tab === 'System' && (
+                        <form onSubmit={saveSystem} className="space-y-6 max-w-md">
+                            <h2 className="text-base font-black text-gray-900">System Settings</h2>
+
+                            <div className="flex items-center justify-between gap-4 p-4 bg-white border border-gray-100 rounded-xl">
+                                <div>
+                                    <p className="text-sm font-bold text-gray-900">Theme</p>
+                                    <p className="text-xs text-gray-500">Applies across the admin panel</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleThemeToggle}
+                                    disabled={themeLoading}
+                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                                >
+                                    {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+                                    {themeLoading ? 'Saving...' : isDarkMode ? 'Light Mode' : 'Dark Mode'}
+                                </button>
+                            </div>
+
+                            <Field label="LMS Name">
+                                <TextInput
+                                    type="text"
+                                    value={system.lmsName}
+                                    onChange={e => setSystem(s => ({ ...s, lmsName: e.target.value }))}
+                                    placeholder="e.g. BrightMIND Academy"
+                                    required
+                                />
+                            </Field>
+
+                            <Field label="Default Timezone">
+                                <select
+                                    value={system.timezone}
+                                    onChange={e => setSystem(s => ({ ...s, timezone: e.target.value }))}
+                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 focus:border-[#8b5cf6] transition-colors"
+                                >
+                                    <option value="IST">India Standard Time (IST)</option>
+                                    <option value="UTC">Coordinated Universal Time (UTC)</option>
+                                    <option value="EST">Eastern Standard Time (EST)</option>
+                                    <option value="PST">Pacific Standard Time (PST)</option>
+                                    <option value="GMT">Greenwich Mean Time (GMT)</option>
+                                </select>
+                            </Field>
+
+                            <Field label="Support Email">
+                                <TextInput
+                                    type="email"
+                                    value={system.supportEmail}
+                                    onChange={e => setSystem(s => ({ ...s, supportEmail: e.target.value }))}
+                                    placeholder="support@yourschool.com"
+                                />
+                            </Field>
+
+                            <div className="pt-2">
+                                <SaveButton loading={sysLoading} />
+                            </div>
+                        </form>
+                    )}
 
 
-                        <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end">
-                            <button
-                                onClick={handleSave}
-                                className="flex items-center gap-2 bg-[#8b5cf6] hover:bg-[#7c3aed] text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-purple-500/20"
-                            >
-                                <Save size={20} /> Save Changes
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
     );
 };
 
-export default AdminSettingsPage;
+export default AdminSettings;

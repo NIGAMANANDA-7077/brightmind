@@ -4,9 +4,10 @@ import api from '../utils/axiosConfig';
 const BatchContext = createContext(null);
 
 export const BatchProvider = ({ children, role }) => {
-    const [myBatch, setMyBatch] = useState(null);
+    const [myBatch, setMyBatch] = useState(null);       // primary batch (backward compat)
+    const [myBatches, setMyBatches] = useState([]);     // ALL student batches
     const [myLiveClasses, setMyLiveClasses] = useState([]);
-    const [myBatches, setMyBatches] = useState([]);
+    const [teacherBatches, setTeacherBatches] = useState([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -17,7 +18,10 @@ export const BatchProvider = ({ children, role }) => {
                     api.get('/batches/student/my-batch'),
                     api.get('/batches/student/live-classes')
                 ]);
-                if (bRes.data.success) setMyBatch(bRes.data.data);
+                if (bRes.data.success) {
+                    setMyBatch(bRes.data.data);                          // primary batch
+                    setMyBatches(bRes.data.allBatches || (bRes.data.data ? [bRes.data.data] : []));
+                }
                 if (lcRes.data.success) setMyLiveClasses(lcRes.data.data || []);
             } catch (err) { 
                 console.error("[BatchContext] Error fetching student data:", err.response?.data || err.message);
@@ -29,8 +33,10 @@ export const BatchProvider = ({ children, role }) => {
             setLoading(true);
             try {
                 const res = await api.get('/batches/teacher/my-batches');
-                if (res.data.success) setMyBatches(res.data.data || []);
-            } catch (_) { }
+                if (res.data.success) setTeacherBatches(res.data.data || []);
+            } catch (err) { 
+                console.error("[BatchContext] Error fetching teacher batches:", err.response?.data || err.message);
+            }
             finally { setLoading(false); }
         };
 
@@ -44,13 +50,16 @@ export const BatchProvider = ({ children, role }) => {
                 api.get('/batches/student/my-batch'),
                 api.get('/batches/student/live-classes')
             ]);
-            if (bRes.data.success) setMyBatch(bRes.data.data);
+            if (bRes.data.success) {
+                setMyBatch(bRes.data.data);
+                setMyBatches(bRes.data.allBatches || (bRes.data.data ? [bRes.data.data] : []));
+            }
             if (lcRes.data.success) setMyLiveClasses(lcRes.data.data || []);
         } catch (_) { }
     };
 
     return (
-        <BatchContext.Provider value={{ myBatch, myLiveClasses, myBatches, loading, refetchStudentBatch }}>
+        <BatchContext.Provider value={{ myBatch, myBatches, myLiveClasses, teacherBatches, loading, refetchStudentBatch }}>
             {children}
         </BatchContext.Provider>
     );

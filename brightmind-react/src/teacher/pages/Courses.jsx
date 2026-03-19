@@ -19,10 +19,25 @@ const Courses = () => {
     const fetchCourses = async () => {
         if (!user?.id) return;
         try {
+            // First try teacher-specific courses
             const res = await api.get(`/courses/teacher/${user.id}`);
-            setCourses(res.data);
+            const teacherCourses = Array.isArray(res.data) ? res.data : res.data?.data || [];
+            if (teacherCourses.length > 0) {
+                setCourses(teacherCourses);
+            } else {
+                // Fallback: load all courses so teacher can see available courses
+                const allRes = await api.get('/courses');
+                setCourses(Array.isArray(allRes.data) ? allRes.data : allRes.data?.data || []);
+            }
         } catch (err) {
             console.error("Failed to fetch teacher courses:", err);
+            // Fallback to all courses on error
+            try {
+                const allRes = await api.get('/courses');
+                setCourses(Array.isArray(allRes.data) ? allRes.data : allRes.data?.data || []);
+            } catch {
+                setCourses([]);
+            }
         } finally {
             setLoading(false);
         }
@@ -58,7 +73,7 @@ const Courses = () => {
             {/* Info Banner */}
             <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-start gap-3 text-sm text-blue-700">
                 <BookOpen size={18} className="flex-shrink-0 mt-0.5 text-blue-500" />
-                <p>Courses are assigned to you by the Admin. Click any course to view its syllabus, upload materials, and submit exam questions for review.</p>
+                <p>Courses assigned to you by the Admin appear here. Click any course to view its syllabus, upload materials, and manage content. Contact Admin to get courses assigned to your account.</p>
             </div>
 
             {/* Course Cards */}

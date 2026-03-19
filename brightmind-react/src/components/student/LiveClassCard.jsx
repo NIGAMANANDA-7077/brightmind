@@ -60,7 +60,7 @@ const LiveClassCard = ({ session }) => {
                             ● LIVE NOW
                         </span>
                     )}
-                    <span className="text-xs font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full">{session.course}</span>
+                    <span className="text-xs font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full">{typeof session.course === 'object' ? session.course?.title : session.course}</span>
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-1">{session.title}</h3>
                 <div className="flex items-center gap-4 text-sm text-gray-500 mt-2">

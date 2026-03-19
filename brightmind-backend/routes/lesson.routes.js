@@ -1,17 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const lessonController = require('../controllers/lessonController');
+const { protect } = require('../middlewares/authMiddleware');
 
-// POST a new lesson
-router.post('/', lessonController.createLesson);
-
-// GET lessons for a specific module
-router.get('/:moduleId', lessonController.getLessonsByModule);
-
-// PUT update a lesson
-router.put('/:id', lessonController.updateLesson);
-
-// DELETE a lesson
-router.delete('/:id', lessonController.deleteLesson);
+router.post('/', protect, lessonController.createLesson);
+router.get('/:moduleId', protect, lessonController.getLessonsByModule);
+router.put('/:id', protect, lessonController.updateLesson);
+router.delete('/:id', protect, lessonController.deleteLesson);
 
 module.exports = router;

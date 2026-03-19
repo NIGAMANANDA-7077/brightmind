@@ -53,10 +53,10 @@ export const CourseProvider = ({ children }) => {
 
                 return {
                     ...course,
-                    modules: updatedModules, // Keep it as 'modules' for frontend components
+                    modules: updatedModules,
                     totalLessons,
                     completedLessons: completedCount,
-                    progress: course.progress || 0
+                    progress: totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0
                 };
             }));
 

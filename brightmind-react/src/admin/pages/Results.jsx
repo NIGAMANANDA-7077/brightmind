@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { AdminResultsProvider, useAdminResults } from '../context/AdminResultsContext';
 import ResultsFilterBar from '../components/results/ResultsFilterBar';
 import ResultsTable from '../components/results/ResultsTable';
@@ -7,18 +7,49 @@ import { TrendingUp, Users, CheckCircle, Award } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 const ResultsContent = () => {
-    const { resultStats } = useAdminResults();
+    const { resultStats, allResults } = useAdminResults();
     const [selectedResult, setSelectedResult] = useState(null);
+    const [trendPeriod, setTrendPeriod] = useState('6months'); // '6months' | 'year'
 
-    // Mock data for Line Chart (Visual Only)
-    const trendData = [
-        { name: 'Jan', attempts: 120 },
-        { name: 'Feb', attempts: 180 },
-        { name: 'Mar', attempts: 150 },
-        { name: 'Apr', attempts: 250 },
-        { name: 'May', attempts: 320 },
-        { name: 'Jun', attempts: 400 },
-    ];
+    // Compute Performance Trend from real result data grouped by month
+    const trendData = useMemo(() => {
+        const now = new Date();
+        const monthCount = trendPeriod === 'year' ? 12 : 6;
+
+        // Build last N months labels
+        const months = [];
+        for (let i = monthCount - 1; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            months.push({
+                key: `${d.getFullYear()}-${d.getMonth()}`,
+                label: d.toLocaleString('default', { month: 'short' }),
+                scores: [],
+                attempts: 0,
+            });
+        }
+
+        // Bucket each result into the correct month
+        (allResults || []).forEach(r => {
+            const date = r.submittedAt ? new Date(r.submittedAt) : null;
+            if (!date) return;
+            const key = `${date.getFullYear()}-${date.getMonth()}`;
+            const bucket = months.find(m => m.key === key);
+            if (bucket) {
+                bucket.scores.push(r.totalScore || 0);
+                bucket.attempts++;
+            }
+        });
+
+        return months.map(m => ({
+            name: m.label,
+            avgScore: m.scores.length > 0 ? Math.round(m.scores.reduce((a, b) => a + b, 0) / m.scores.length) : 0,
+            attempts: m.attempts,
+        }));
+    }, [allResults, trendPeriod]);
+
+    // Dynamic Y-axis domain
+    const maxVal = trendData.length > 0 ? Math.max(...trendData.map(d => d.avgScore), 1) : 10;
+    const yMax = Math.ceil(maxVal * 1.3 / 5) * 5 || 10;
 
     return (
         <div className="max-w-[1600px] mx-auto space-y-6 animate-fadeIn pb-12">
@@ -30,8 +61,14 @@ const ResultsContent = () => {
                     <p className="text-gray-500">Comprehensive student performance analysis</p>
                 </div>
                 <div className="flex bg-white border border-gray-200 rounded-lg p-1 self-start">
-                    <button className="px-3 py-1 text-xs font-medium bg-gray-100 text-gray-900 rounded-md">Last 6 Months</button>
-                    <button className="px-3 py-1 text-xs font-medium text-gray-500 hover:text-gray-900">Year</button>
+                    <button
+                        onClick={() => setTrendPeriod('6months')}
+                        className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${trendPeriod === '6months' ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
+                    >Last 6 Months</button>
+                    <button
+                        onClick={() => setTrendPeriod('year')}
+                        className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${trendPeriod === 'year' ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
+                    >Year</button>
                 </div>
             </div>
 
@@ -88,7 +125,10 @@ const ResultsContent = () => {
 
                 {/* Trend Chart (Side Widget) */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
-                    <h3 className="font-bold text-gray-900 mb-6">Performance Trend</h3>
+                    <div className="flex items-center justify-between mb-1">
+                        <h3 className="font-bold text-gray-900">Performance Trend</h3>
+                    </div>
+                    <p className="text-xs text-gray-400 mb-4">Avg score per month based on exam results</p>
                     <div className="h-[250px] w-full">
                         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                             <LineChart data={trendData}>
@@ -104,21 +144,43 @@ const ResultsContent = () => {
                                     axisLine={false}
                                     tickLine={false}
                                     tick={{ fill: '#9ca3af', fontSize: 12 }}
+                                    domain={[0, yMax]}
+                                    allowDecimals={false}
                                 />
                                 <Tooltip
                                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                     cursor={{ stroke: '#e5e7eb', strokeWidth: 1 }}
+                                    formatter={(value, name) => [
+                                        name === 'avgScore' ? `${value} pts` : value,
+                                        name === 'avgScore' ? 'Avg Score' : 'Attempts'
+                                    ]}
                                 />
                                 <Line
                                     type="monotone"
-                                    dataKey="attempts"
-                                    stroke="#111827"
+                                    dataKey="avgScore"
+                                    stroke="#8b5cf6"
                                     strokeWidth={3}
-                                    dot={{ r: 4, fill: '#111827', strokeWidth: 2, stroke: '#fff' }}
-                                    activeDot={{ r: 6, fill: '#8b5cf6' }}
+                                    dot={{ r: 4, fill: '#8b5cf6', strokeWidth: 2, stroke: '#fff' }}
+                                    activeDot={{ r: 6, fill: '#7c3aed' }}
+                                    connectNulls
                                 />
                             </LineChart>
                         </ResponsiveContainer>
+                    </div>
+                    {/* Summary below chart */}
+                    <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between text-center">
+                        <div>
+                            <p className="text-xs text-gray-400">Total Attempts</p>
+                            <p className="text-sm font-bold text-gray-800">{trendData.reduce((s, d) => s + d.attempts, 0)}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-400">Peak Avg Score</p>
+                            <p className="text-sm font-bold text-purple-600">{Math.max(...trendData.map(d => d.avgScore))} pts</p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-400">Active Months</p>
+                            <p className="text-sm font-bold text-gray-800">{trendData.filter(d => d.attempts > 0).length}</p>
+                        </div>
                     </div>
                 </div>
             </div>

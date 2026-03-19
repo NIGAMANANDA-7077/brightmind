@@ -14,12 +14,18 @@ const seed = async () => {
         await sequelize.sync({ force: true });
         console.log('Database synced fresh');
 
-        // 0. Create Admin
+        // 0. Create Admins
+        const [superAdmin] = await User.findOrCreate({
+            where: { email: 'superadmin@brightmind.com' },
+            defaults: { name: 'Main Super Admin', password: 'password123', role: 'SuperAdmin', status: 'Active' }
+        });
+        console.log('Super Admin created');
+
         const [admin] = await User.findOrCreate({
             where: { email: 'admin@brightmind.com' },
-            defaults: { name: 'Super Admin', password: 'password123', role: 'Admin', status: 'Active' }
+            defaults: { name: 'Regular Admin', password: 'password123', role: 'Admin', status: 'Active' }
         });
-        console.log('Admin created');
+        console.log('Regular Admin created');
 
         // 1. Create Teachers
         const [profBright] = await User.findOrCreate({

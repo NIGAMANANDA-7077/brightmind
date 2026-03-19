@@ -9,7 +9,7 @@ const Assignments = () => {
     const navigate = useNavigate();
     const [filter, setFilter] = useState('All');
 
-    const filters = ['All', 'Pending', 'Submitted', 'Graded'];
+    const filters = ['All', 'Pending', 'Submitted', 'Late', 'Graded'];
 
     const filteredAssignments = filter === 'All'
         ? assignments

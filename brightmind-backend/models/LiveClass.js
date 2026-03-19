@@ -50,6 +50,10 @@ const LiveClass = sequelize.define('LiveClass', {
     recordingUrl: {
         type: DataTypes.STRING,
         allowNull: true
+    },
+    tenantId: {
+        type: DataTypes.UUID,
+        allowNull: true
     }
 }, {
     tableName: 'live_classes',

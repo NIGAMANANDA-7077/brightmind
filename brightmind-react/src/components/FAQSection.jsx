@@ -5,10 +5,11 @@ import { useScrollAnimation } from '../hooks/useScrollAnimation';
 const FAQItem = ({ question, answer, isOpen, onClick }) => {
   return (
     <div
-      className={`rounded-2xl overflow-hidden transition-all duration-300 ${isOpen
-        ? 'bg-[#8b5cf6] text-white shadow-lg'
-        : 'bg-[#fafaf9] text-gray-900 hover:bg-[#8b5cf6] hover:text-white'
-        }`}
+      className={`rounded-2xl overflow-hidden transition-all duration-300 border theme-border ${
+        isOpen
+          ? 'bg-[color:var(--bg-secondary)] text-[color:var(--text-primary)] shadow-lg border-[#8b5cf6]/60'
+          : 'bg-[color:var(--card-bg)] text-[color:var(--text-primary)] hover:border-[#8b5cf6] hover:shadow-lg'
+      }`}
     >
       <button
         onClick={onClick}
@@ -16,15 +17,17 @@ const FAQItem = ({ question, answer, isOpen, onClick }) => {
       >
         <span className="font-bold text-lg md:text-xl">{question}</span>
         <Plus
-          className={`w-6 h-6 transition-transform duration-300 flex-shrink-0 ml-4 ${isOpen ? 'rotate-45' : 'group-hover:rotate-90'
-            }`}
+          className={`w-6 h-6 transition-transform duration-300 flex-shrink-0 ml-4 ${
+            isOpen ? 'rotate-45 text-[#8b5cf6]' : 'group-hover:rotate-90 text-[color:var(--text-secondary)]'
+          }`}
         />
       </button>
       <div
-        className={`overflow-hidden transition-all duration-500 ease-in-out ${isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-          }`}
+        className={`overflow-hidden transition-all duration-500 ease-in-out ${
+          isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+        }`}
       >
-        <div className="px-8 pb-8 text-base md:text-lg leading-relaxed text-white/90 font-medium">
+        <div className="px-8 pb-8 text-base md:text-lg leading-relaxed text-[color:var(--text-secondary)] font-medium">
           {answer}
         </div>
       </div>
@@ -72,7 +75,7 @@ const FAQSection = () => {
             ref={ref}
             className={`lg:col-span-4 lg:sticky lg:top-10 scroll-slide-right ${isVisible ? 'visible' : ''}`}
           >
-            <h2 className="text-5xl md:text-6xl font-bold text-white leading-tight">
+            <h2 className="text-5xl md:text-6xl font-bold text-[color:var(--text-primary)] leading-tight">
               Frequently Asked Questions
             </h2>
           </div>

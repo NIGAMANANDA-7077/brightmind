@@ -1,39 +1,112 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import api from '../utils/axiosConfig';
 
 const ThemeContext = createContext();
+
+const getStoredUser = () => {
+    if (typeof window === 'undefined') return null;
+    const raw = localStorage.getItem('brightmind_user');
+    if (!raw || raw === 'undefined' || raw === 'null') return null;
+    try {
+        return JSON.parse(raw);
+    } catch {
+        return null;
+    }
+};
+
+const applyThemeToDom = (theme) => {
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+    if (theme === 'dark') {
+        root.classList.add('dark');
+        root.setAttribute('data-theme', 'dark');
+    } else {
+        root.classList.remove('dark');
+        root.setAttribute('data-theme', 'light');
+    }
+};
 
 export const useTheme = () => useContext(ThemeContext);
 
 export const ThemeProvider = ({ children }) => {
-    // Check local storage or system preference on initial load
-    const [isDarkMode, setIsDarkMode] = useState(() => {
-        if (typeof window !== 'undefined') {
-            const savedMode = localStorage.getItem('theme');
-            if (savedMode) {
-                return savedMode === 'dark';
+    const initialTheme = () => {
+        if (typeof window === 'undefined') return 'light';
+        const preloaded = document.documentElement.getAttribute('data-theme');
+        if (preloaded === 'dark' || preloaded === 'light') return preloaded;
+        const stored = localStorage.getItem('theme');
+        if (stored === 'dark' || stored === 'light') return stored;
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    };
+
+    const [theme, setTheme] = useState(initialTheme);
+    const [isReady, setIsReady] = useState(false);
+    const lastPersisted = useRef(null);
+
+    const persistPreference = useCallback(async (nextTheme) => {
+        const user = getStoredUser();
+        if (!user?.token) return;
+        try {
+            // Generic preference store for all roles
+            await api.put('/users/theme', { theme: nextTheme });
+            // Student-specific preference (maintain existing endpoint usage)
+            if (user.role === 'Student') {
+                await api.put('/student/preferences', { dark_mode: nextTheme === 'dark' });
             }
-            return window.matchMedia('(prefers-color-scheme: dark)').matches;
+            lastPersisted.current = nextTheme;
+        } catch (err) {
+            console.warn('Failed to persist theme preference', err);
         }
-        return false;
-    });
+    }, []);
 
     useEffect(() => {
-        // Update DOM to reflect mode
-        if (isDarkMode) {
-            document.documentElement.classList.add('dark');
-            localStorage.setItem('theme', 'dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-            localStorage.setItem('theme', 'light');
+        applyThemeToDom(theme);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('theme', theme);
         }
-    }, [isDarkMode]);
+        // Avoid spamming persistence on initial hydration if nothing changed
+        if (isReady && lastPersisted.current !== theme) {
+            persistPreference(theme);
+        }
+    }, [theme, isReady, persistPreference]);
+
+    // Hydrate from backend if user preference exists
+    useEffect(() => {
+        const user = getStoredUser();
+        if (!user?.token) {
+            setIsReady(true);
+            return;
+        }
+        let active = true;
+        const fetchTheme = async () => {
+            try {
+                const res = await api.get('/users/theme');
+                const saved = res.data?.theme;
+                if (active && (saved === 'dark' || saved === 'light')) {
+                    lastPersisted.current = saved;
+                    setTheme(saved);
+                }
+            } catch (err) {
+                console.warn('Failed to fetch theme preference', err);
+            } finally {
+                if (active) setIsReady(true);
+            }
+        };
+        fetchTheme();
+        return () => { active = false; };
+    }, []);
 
     const toggleTheme = () => {
-        setIsDarkMode(!isDarkMode);
+        setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+    };
+
+    const setThemeExplicit = (next) => {
+        if (next === 'dark' || next === 'light') {
+            setTheme(next);
+        }
     };
 
     return (
-        <ThemeContext.Provider value={{ isDarkMode, toggleTheme }}>
+        <ThemeContext.Provider value={{ theme, isDarkMode: theme === 'dark', toggleTheme, setTheme: setThemeExplicit }}>
             {children}
         </ThemeContext.Provider>
     );

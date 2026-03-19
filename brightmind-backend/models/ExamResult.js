@@ -42,6 +42,10 @@ const ExamResult = sequelize.define('ExamResult', {
     publishedAt: {
         type: DataTypes.DATE,
         allowNull: true
+    },
+    tenantId: {
+        type: DataTypes.UUID,
+        allowNull: true
     }
 }, {
     timestamps: true

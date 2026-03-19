@@ -7,6 +7,7 @@ import axios from 'axios';
 // =========================================================
 
 import api from '../utils/axiosConfig';
+import { useUser } from './UserContext';
 
 const SharedAnnouncementsContext = createContext(null);
 
@@ -17,6 +18,7 @@ export const useSharedAnnouncements = () => {
 };
 
 export const SharedAnnouncementsProvider = ({ children }) => {
+    const { user, loading: userLoading } = useUser();
     const [announcements, setAnnouncements] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -32,8 +34,14 @@ export const SharedAnnouncementsProvider = ({ children }) => {
     };
 
     useEffect(() => {
-        fetchAnnouncements();
-    }, []);
+        if (!userLoading) {
+            if (user) {
+                fetchAnnouncements();
+            } else {
+                setLoading(false);
+            }
+        }
+    }, [user, userLoading]);
 
     const addAnnouncement = async (data) => {
         try {

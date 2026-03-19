@@ -38,6 +38,10 @@ const Lesson = sequelize.define('Lesson', {
     lessonOrder: {
         type: DataTypes.INTEGER,
         defaultValue: 0
+    },
+    tenantId: {
+        type: DataTypes.UUID,
+        allowNull: true
     }
 }, {
     timestamps: true,

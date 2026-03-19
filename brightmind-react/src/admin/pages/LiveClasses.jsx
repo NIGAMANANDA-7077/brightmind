@@ -6,6 +6,7 @@ const AdminLiveClasses = () => {
     const [liveClasses, setLiveClasses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('All');
     const [fetchError, setFetchError] = useState('');
 
     const fetchAllLiveClasses = async () => {
@@ -27,11 +28,21 @@ const AdminLiveClasses = () => {
         fetchAllLiveClasses();
     }, []);
 
-    const filtered = liveClasses.filter(c =>
-        c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.course?.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (c.teacher?.name && c.teacher.name.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const filtered = liveClasses.filter(c => {
+        const matchesSearch =
+            (c.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (c.course?.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (c.teacher?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus = statusFilter === 'All' || c.status === statusFilter;
+        return matchesSearch && matchesStatus;
+    });
+
+    const counts = {
+        All: liveClasses.length,
+        Upcoming: liveClasses.filter(c => c.status === 'Upcoming').length,
+        Live: liveClasses.filter(c => c.status === 'Live').length,
+        Completed: liveClasses.filter(c => c.status === 'Completed').length,
+    };
 
     if (loading) {
         return (
@@ -50,7 +61,7 @@ const AdminLiveClasses = () => {
                 </div>
             </div>
 
-            {/* Search and Filter */}
+            {/* Search and Status Filter */}
             <div className="flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -61,6 +72,21 @@ const AdminLiveClasses = () => {
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
+                </div>
+                <div className="flex gap-2 p-1 bg-gray-100 rounded-xl">
+                    {['All', 'Upcoming', 'Live', 'Completed'].map(s => (
+                        <button
+                            key={s}
+                            onClick={() => setStatusFilter(s)}
+                            className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                                statusFilter === s
+                                    ? 'bg-white text-[#8b5cf6] shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            {s} <span className="text-xs font-normal">({counts[s]})</span>
+                        </button>
+                    ))}
                 </div>
             </div>
 
@@ -94,7 +120,7 @@ const AdminLiveClasses = () => {
                                     <tr key={c.id} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col gap-1">
-                                                <span className="font-bold text-gray-900">{c.title}</span>
+                                                <span className="font-bold text-gray-900">{c.title || '—'}</span>
                                                 <span className="text-xs text-gray-500">{c.course?.title}</span>
                                                 {c.batch && (
                                                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-100 self-start uppercase tracking-widest">
@@ -108,7 +134,7 @@ const AdminLiveClasses = () => {
                                                 <div className="w-7 h-7 bg-purple-100 rounded-full flex items-center justify-center text-[10px] font-bold text-[#8b5cf6]">
                                                     {(c.teacher?.name || 'T').charAt(0)}
                                                 </div>
-                                                <span className="text-sm font-medium text-gray-700">{c.teacher?.name}</span>
+                                                <span className="text-sm font-medium text-gray-700">{c.teacher?.name || '—'}</span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
@@ -126,15 +152,19 @@ const AdminLiveClasses = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <a
-                                                href={c.meetingLink}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-[#8b5cf6] hover:bg-[#8b5cf6]/10 p-2 rounded-lg transition-colors inline-block"
-                                                title="View Link"
-                                            >
-                                                <Video size={18} />
-                                            </a>
+                                            {c.meetingLink ? (
+                                                <a
+                                                    href={c.meetingLink}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-[#8b5cf6] hover:bg-[#8b5cf6]/10 p-2 rounded-lg transition-colors inline-block"
+                                                    title="View Link"
+                                                >
+                                                    <Video size={18} />
+                                                </a>
+                                            ) : (
+                                                <span className="text-gray-300 p-2 inline-block"><Video size={18} /></span>
+                                            )}
                                         </td>
                                     </tr>
                                 ))

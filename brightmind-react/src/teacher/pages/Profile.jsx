@@ -1,23 +1,69 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useUser } from '../../context/UserContext';
 import api from '../../utils/axiosConfig';
 import { Edit2, Check, X, Mail, Phone, BookOpen, Award, Camera, Shield, Zap, Target, Loader2 } from 'lucide-react';
 
 const Profile = () => {
-    const { user: profile, updateUser } = useUser();
+    const { user: ctxUser, updateUser, refreshUser } = useUser();
+    const [profile, setProfile] = useState(ctxUser || null);
     const [isEditing, setIsEditing] = useState(false);
-    const [form, setForm] = useState(profile || {});
+    const [form, setForm] = useState({});
     const [saved, setSaved] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [saving, setSaving] = useState(false);
     const fileInputRef = useRef(null);
+
+    // Fetch fresh profile from API on mount (ensures admin edits are reflected)
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const res = await api.get('/teacher/profile');
+                if (res.data.success) {
+                    setProfile(res.data.user);
+                }
+            } catch (err) {
+                // Fallback to context user if API fails
+                setProfile(ctxUser);
+            }
+        };
+        fetchProfile();
+    }, []);
 
     if (!profile) return <div className="flex items-center justify-center min-h-[400px]"><Loader2 className="animate-spin text-[#8b5cf6]" size={40} /></div>;
 
-    const handleSave = async () => {
-        await updateUser(form);
+    const handleEdit = () => {
+        setForm({
+            name:          profile.name          || '',
+            phone:         profile.phone         || '',
+            subject:       profile.subject       || '',
+            qualification: profile.qualification || '',
+            experience:    profile.experience    || '',
+            bio:           profile.bio           || '',
+        });
+        setIsEditing(true);
+    };
+
+    const handleCancel = () => {
         setIsEditing(false);
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
+        setForm({});
+    };
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            await updateUser(form);
+            // Refresh from DB so profile reflects latest state
+            const fresh = await refreshUser();
+            if (fresh) setProfile(fresh);
+            else setProfile(prev => ({ ...prev, ...form }));
+            setIsEditing(false);
+            setSaved(true);
+            setTimeout(() => setSaved(false), 2000);
+        } catch (err) {
+            console.error('Save failed', err);
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleImageUpload = async (e) => {
@@ -35,7 +81,7 @@ const Profile = () => {
             if (res.data.success) {
                 const newAvatar = res.data.url;
                 await updateUser({ avatar: newAvatar });
-                setForm(prev => ({ ...prev, avatar: newAvatar }));
+                setProfile(prev => ({ ...prev, avatar: newAvatar }));
             }
         } catch (err) {
             console.error("Upload failed", err);
@@ -55,21 +101,23 @@ const Profile = () => {
                 {isEditing ? (
                     <div className="flex gap-3">
                         <button
-                            onClick={() => { setIsEditing(false); setForm(profile); }}
+                            onClick={handleCancel}
                             className="px-6 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-all flex items-center gap-2"
                         >
                             <X size={16} /> Cancel
                         </button>
                         <button
                             onClick={handleSave}
-                            className="px-6 py-2.5 rounded-xl bg-[#8b5cf6] text-white font-bold text-sm hover:bg-[#7c3aed] transition-all shadow-lg shadow-purple-500/25 flex items-center gap-2"
+                            disabled={saving}
+                            className="px-6 py-2.5 rounded-xl bg-[#8b5cf6] text-white font-bold text-sm hover:bg-[#7c3aed] transition-all shadow-lg shadow-purple-500/25 flex items-center gap-2 disabled:opacity-70"
                         >
-                            <Check size={16} /> Save Changes
+                            {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                            {saving ? 'Saving...' : 'Save Changes'}
                         </button>
                     </div>
                 ) : (
                     <button
-                        onClick={() => { setForm(profile); setIsEditing(true); }}
+                        onClick={handleEdit}
                         className="px-6 py-2.5 rounded-xl bg-white border border-gray-200 text-gray-900 font-bold text-sm hover:border-[#8b5cf6] hover:text-[#8b5cf6] transition-all flex items-center gap-2 shadow-sm"
                     >
                         <Edit2 size={16} /> Edit Profile
@@ -142,7 +190,7 @@ const Profile = () => {
                                 </div>
                                 <div className="p-3 bg-gray-50 rounded-2xl text-center min-w-[90px]">
                                     <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-0.5">Join Year</p>
-                                    <p className="text-sm font-bold text-gray-900">{new Date(profile.joinedDate).getFullYear()}</p>
+                                    <p className="text-sm font-bold text-gray-900">{profile.joinedDate ? new Date(profile.joinedDate).getFullYear() : (profile.createdAt ? new Date(profile.createdAt).getFullYear() : '—')}</p>
                                 </div>
                             </div>
                         </div>
@@ -160,11 +208,8 @@ const Profile = () => {
                         <div className="space-y-4">
                             <div className="space-y-1">
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Email Address</label>
-                                {isEditing ? (
-                                    <input className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
-                                ) : (
-                                    <p className="text-sm font-bold text-gray-900 flex items-center gap-2"><Mail size={14} className="text-[#8b5cf6]" /> {profile.email}</p>
-                                )}
+                                {/* Email is always read-only — cannot be changed by teacher */}
+                                <p className="text-sm font-bold text-gray-900 flex items-center gap-2"><Mail size={14} className="text-[#8b5cf6]" /> {profile.email}</p>
                             </div>
                             <div className="space-y-1">
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Phone Number</label>
@@ -216,10 +261,14 @@ const Profile = () => {
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Experience</label>
-                                    <div className="flex items-center gap-3">
-                                        <div className="bg-green-50 text-green-500 p-2 rounded-xl"><Zap size={20} /></div>
-                                        <p className="font-bold text-gray-900">{profile.experience}</p>
-                                    </div>
+                                    {isEditing ? (
+                                        <input className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none" value={form.experience} onChange={e => setForm({ ...form, experience: e.target.value })} placeholder="e.g. 5 years" />
+                                    ) : (
+                                        <div className="flex items-center gap-3">
+                                            <div className="bg-green-50 text-green-500 p-2 rounded-xl"><Zap size={20} /></div>
+                                            <p className="font-bold text-gray-900">{profile.experience}</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

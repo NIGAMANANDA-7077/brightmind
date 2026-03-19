@@ -13,6 +13,14 @@ router.post('/', protect, authorize('Teacher', 'Admin'), examController.createEx
 router.get('/', protect, authorize('Teacher', 'Admin'), examController.getExams);
 router.get('/teacher', protect, authorize('Teacher', 'Admin'), examController.getTeacherExams);
 router.post('/:examId/generate', protect, authorize('Teacher', 'Admin'), examController.generateRandomPaper);
+
+// Simple inline question management
+router.get('/:examId/questions', protect, authorize('Teacher', 'Admin'), examController.getExamQuestions);
+router.post('/:examId/questions', protect, authorize('Teacher', 'Admin'), examController.addQuestionToExam);
+router.put('/:examId/questions/:eqId', protect, authorize('Teacher', 'Admin'), examController.updateExamQuestion);
+router.delete('/:examId/questions/:eqId', protect, authorize('Teacher', 'Admin'), examController.removeQuestionFromExam);
+router.patch('/:id/status', protect, authorize('Teacher', 'Admin'), examController.updateExamStatus);
+
 router.put('/:id', protect, authorize('Teacher', 'Admin'), examController.updateExam);
 router.delete('/:id', protect, authorize('Teacher', 'Admin'), examController.deleteExam);
 

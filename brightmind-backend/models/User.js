@@ -8,6 +8,11 @@ const User = sequelize.define('User', {
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true
     },
+    studentId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true,
+    },
     name: {
         type: DataTypes.STRING,
         allowNull: false
@@ -25,7 +30,7 @@ const User = sequelize.define('User', {
         allowNull: false
     },
     role: {
-        type: DataTypes.ENUM('Admin', 'Teacher', 'Student'),
+        type: DataTypes.ENUM('Admin', 'Teacher', 'Student', 'SuperAdmin'),
         defaultValue: 'Student'
     },
     avatar: {
@@ -64,9 +69,21 @@ const User = sequelize.define('User', {
         type: DataTypes.UUID,
         allowNull: true
     },
+    tenantId: {
+        type: DataTypes.UUID,
+        allowNull: true  // null for SuperAdmin (platform-level)
+    },
     status: {
         type: DataTypes.ENUM('Active', 'Inactive', 'Suspended'),
         defaultValue: 'Active'
+    },
+    lastLoginAt: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    mustChangePassword: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
     },
     totalHoursLearned: {
         type: DataTypes.INTEGER,

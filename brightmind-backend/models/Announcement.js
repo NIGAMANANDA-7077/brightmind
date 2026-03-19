@@ -34,6 +34,10 @@ const Announcement = sequelize.define('Announcement', {
     batchId: {
         type: DataTypes.UUID,
         allowNull: true
+    },
+    tenantId: {
+        type: DataTypes.UUID,
+        allowNull: true
     }
 }, {
     timestamps: true

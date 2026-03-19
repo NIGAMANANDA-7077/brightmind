@@ -73,6 +73,24 @@ const Course = sequelize.define('Course', {
     createdBy: {
         type: DataTypes.UUID,
         allowNull: true
+    },
+    createdByAdminName: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    price: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+        defaultValue: 0
+    },
+    slug: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true
+    },
+    tenantId: {
+        type: DataTypes.UUID,
+        allowNull: true
     }
 }, {
     timestamps: true

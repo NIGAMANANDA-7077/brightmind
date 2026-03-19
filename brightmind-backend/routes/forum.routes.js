@@ -10,5 +10,8 @@ router.post('/:id/comments', protect, forumController.createComment);
 router.post('/:id/upvote', protect, forumController.upvoteThread);
 router.patch('/:id/status', protect, forumController.updateThreadStatus);
 router.post('/:id/comments/:commentId/accept', protect, forumController.acceptAnswer);
+router.post('/:id/comments/:commentId/upvote', protect, forumController.upvoteComment);
+router.delete('/:id/comments/:commentId', protect, forumController.deleteComment);
+router.delete('/:id', protect, forumController.deleteThread);
 
 module.exports = router;

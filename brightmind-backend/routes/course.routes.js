@@ -1,32 +1,20 @@
 const express = require('express');
 const router = express.Router();
 const courseController = require('../controllers/courseController');
+const { protect } = require('../middlewares/authMiddleware');
 
-// GET all courses
-router.get('/', courseController.getAllCourses);
-
-// GET courses by teacher
-router.get('/teacher/:teacherId', courseController.getTeacherCourses);
-
-// GET courses by student
-router.get('/student/:studentId', courseController.getStudentCourses);
-
-// GET single course
-router.get('/:id', courseController.getCourseById);
-
-// POST new course
-router.post('/', courseController.createCourse);
-
-// PUT update course
-router.put('/:id', courseController.updateCourse);
-
-// DELETE course
-router.delete('/:id', courseController.deleteCourse);
-
-// GET student specific course structure
-router.get('/student/course/:courseId', courseController.getCourseById);
-
-// GET courses where student is enrolled
-router.get('/student/enrolled/:studentId', courseController.getStudentCourses);
+// ALL routes require authentication — tenant isolation depends on req.user
+// PUBLIC: no auth — homepage/course detail use
+router.get('/public', courseController.getAllCourses);
+router.get('/public/:id', courseController.getCourseById);  // PUBLIC single course detail
+router.get('/', protect, courseController.getAllCourses);
+router.get('/teacher/:teacherId', protect, courseController.getTeacherCourses);
+router.get('/student/:studentId', protect, courseController.getStudentCourses);
+router.get('/student/course/:courseId', protect, courseController.getCourseById);
+router.get('/student/enrolled/:studentId', protect, courseController.getStudentCourses);
+router.get('/:id', protect, courseController.getCourseById);
+router.post('/', protect, courseController.createCourse);
+router.put('/:id', protect, courseController.updateCourse);
+router.delete('/:id', protect, courseController.deleteCourse);
 
 module.exports = router;

@@ -12,6 +12,7 @@ const Batch = require('./Batch');
 const BatchStudent = require('./BatchStudent');
 const Announcement = require('./Announcement');
 const Assignment = require('./Assignment');
+const Submission = require('./Submission');
 const Attendance = require('./Attendance');
 const Notification = require('./Notification');
 const Payment = require('./Payment');
@@ -23,6 +24,10 @@ const QuestionOption = require('./QuestionOption');
 const ExamQuestion = require('./ExamQuestion');
 const ExamAttempt = require('./ExamAttempt');
 const StudentAnswer = require('./StudentAnswer');
+const SupportMessage = require('./SupportMessage');
+const SuperAdminActivityLog = require('./SuperAdminActivityLog');
+const AdminActivityLog = require('./AdminActivityLog');
+const Tenant = require('./Tenant');
 // ─── Course Structure ───────────────────────────────────────
 Course.hasMany(Module, { foreignKey: 'courseId', as: 'courseModules' });
 Module.belongsTo(Course, { foreignKey: 'courseId' });
@@ -67,6 +72,12 @@ Announcement.belongsTo(Batch, { foreignKey: 'batchId', as: 'batch', constraints:
 // ─── Batch → Assignment ─────────────────────────────────
 Batch.hasMany(Assignment, { foreignKey: 'batchId', as: 'assignments', constraints: false });
 Assignment.belongsTo(Batch, { foreignKey: 'batchId', as: 'batch', constraints: false });
+Assignment.belongsTo(User, { foreignKey: 'teacherId', as: 'teacher', constraints: false });
+
+// ─── Assignment → Submission ─────────────────────────────
+Assignment.hasMany(Submission, { foreignKey: 'assignmentId', as: 'submissions', constraints: false });
+Submission.belongsTo(Assignment, { foreignKey: 'assignmentId', as: 'assignment', constraints: false });
+Submission.belongsTo(User, { foreignKey: 'studentId', as: 'student', constraints: false });
 
 // ─── Batch → Enrollment ─────────────────────────────────
 Batch.hasMany(Enrollment, { foreignKey: 'batchId', as: 'batchEnrollments', constraints: false });
@@ -165,6 +176,29 @@ ExamResult.belongsTo(User, { foreignKey: 'studentId', as: 'student' });
 Batch.hasMany(ExamResult, { foreignKey: 'batchId', as: 'batchExamResults', constraints: false });
 ExamResult.belongsTo(Batch, { foreignKey: 'batchId', as: 'batch', constraints: false });
 
+// ─── AdminActivityLog → User (admin) ────────────────────────
+User.hasMany(AdminActivityLog, { foreignKey: 'adminId', as: 'activityLogs', constraints: false });
+AdminActivityLog.belongsTo(User, { foreignKey: 'adminId', as: 'admin', constraints: false });
+
+// ─── Tenant Associations ─────────────────────────────────────
+Tenant.hasMany(User, { foreignKey: 'tenantId', as: 'members', constraints: false });
+User.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant', constraints: false });
+
+Tenant.hasMany(Course, { foreignKey: 'tenantId', as: 'courses', constraints: false });
+Course.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant', constraints: false });
+
+Tenant.hasMany(Batch, { foreignKey: 'tenantId', as: 'batches', constraints: false });
+Batch.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant', constraints: false });
+
+Tenant.hasMany(Exam, { foreignKey: 'tenantId', as: 'exams', constraints: false });
+Exam.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant', constraints: false });
+
+Tenant.hasMany(Assignment, { foreignKey: 'tenantId', as: 'assignments', constraints: false });
+Assignment.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant', constraints: false });
+
+Tenant.hasMany(Announcement, { foreignKey: 'tenantId', as: 'announcements', constraints: false });
+Announcement.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant', constraints: false });
+
 module.exports = {
     User,
     Course,
@@ -190,5 +224,9 @@ module.exports = {
     QuestionOption,
     ExamQuestion,
     ExamAttempt,
-    StudentAnswer
+    StudentAnswer,
+    SupportMessage,
+    SuperAdminActivityLog,
+    AdminActivityLog,
+    Tenant
 };

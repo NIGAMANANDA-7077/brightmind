@@ -1,0 +1,49 @@
+{
+  "enrollments": [
+    {
+      "id": "34c962f0-5a43-4410-a7fc-9499194288e2",
+      "courseId": "e7b975cf-f4ec-4c96-b802-e6fc9cdef7a9",
+      "batchId": null,
+      "studentId": "7a4df900-6ffe-4cd8-8638-54c47bc3cc4a"
+    },
+    {
+      "id": "788ec53d-7b12-4a23-8368-9bb9cf8c5485",
+      "courseId": "e7b975cf-f4ec-4c96-b802-e6fc9cdef7a9",
+      "batchId": null,
+      "studentId": "50f0261b-17fe-44e7-9b7a-3cbf88a61cf3"
+    },
+    {
+      "id": "e624501a-db8f-4981-ba22-9e776a6c4bbb",
+      "courseId": "a10d16ff-cbfa-43e1-85af-602327b0d74a",
+      "batchId": null,
+      "studentId": "7a4df900-6ffe-4cd8-8638-54c47bc3cc4a"
+    }
+  ],
+  "batchStudents": [
+    {
+      "batchId": "53eab14a-1d99-4cd9-b5e5-3b1526603be4",
+      "studentId": "5bd81f28-a94b-4443-91b8-2023dfbcde16"
+    },
+    {
+      "batchId": "b4180285-3702-42a2-bf9b-ea847d725f3c",
+      "studentId": "7a4df900-6ffe-4cd8-8638-54c47bc3cc4a"
+    }
+  ],
+  "users": [
+    {
+      "id": "50f0261b-17fe-44e7-9b7a-3cbf88a61cf3",
+      "name": "Nigamananda Garanaik",
+      "batchId": null
+    },
+    {
+      "id": "5bd81f28-a94b-4443-91b8-2023dfbcde16",
+      "name": "Bright Student",
+      "batchId": "53eab14a-1d99-4cd9-b5e5-3b1526603be4"
+    },
+    {
+      "id": "7a4df900-6ffe-4cd8-8638-54c47bc3cc4a",
+      "name": "Priya Patel",
+      "batchId": "b4180285-3702-42a2-bf9b-ea847d725f3c"
+    }
+  ]
+}

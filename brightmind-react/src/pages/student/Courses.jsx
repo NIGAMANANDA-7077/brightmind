@@ -15,7 +15,7 @@ const Courses = () => {
     useEffect(() => {
         const fetchAllCourses = async () => {
             try {
-                const res = await api.get('/courses');
+                const res = await api.get('/courses?published=true');
                 setAllCourses(res.data);
             } catch (err) {
                 console.error("Failed to fetch all courses:", err);

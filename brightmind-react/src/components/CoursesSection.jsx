@@ -1,13 +1,45 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { courses } from '../data/courses';
-import { useScrollAnimation } from '../hooks/useScrollAnimation';
 import CourseCard from './CourseCard';
-
 import MeshBackground from './MeshBackground';
 
+const DEFAULT_THUMBNAIL = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop&q=60';
+
+function normalise(c) {
+    return {
+        id: c.id,
+        title: c.title,
+        image: c.thumbnail || DEFAULT_THUMBNAIL,
+        rating: c.rating || 4.5,
+        lessons: c.lessonsCount || 0,
+        duration: c.duration || 'Self-paced',
+        students: c.studentsEnrolled || 0,
+        price: Number(c.price) || 0,
+        instructor: {
+            name: c.createdByAdminName || c.instructor || 'Admin',
+            avatar: c.instructorAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.createdByAdminName || 'Admin')}&background=random`,
+        },
+    };
+}
+
 const CoursesSection = () => {
-  const [gridRef, gridVisible] = useScrollAnimation({ threshold: 0.1, once: true });
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/courses/public`)
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(data => {
+        setCourses((Array.isArray(data) ? data : []).slice(0, 3).map(normalise));
+      })
+      .catch(err => {
+        console.error('[CoursesSection] Failed to load courses:', err);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <section id="courses" className="relative py-20 md:py-28 overflow-hidden">
@@ -24,17 +56,23 @@ const CoursesSection = () => {
         </div>
 
         {/* Grid */}
-        <div
-          ref={gridRef}
-          className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 ${gridVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'} transition-all duration-1000 ease-out`}
-        >
-          {courses.slice(0, 3).map((course) => ( // limit to 3 for home page usually? Or all? Reference showed grid. Let's keep existing map. Original had map over all.
-            <CourseCard key={course.id} course={course} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="w-10 h-10 border-4 border-[#8b5cf6] border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : courses.length === 0 ? (
+          <p className="text-center text-gray-400 py-12">No courses available yet.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {courses.map((course) => (
+              <CourseCard key={course.id} course={course} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
 };
 
 export default CoursesSection;
+

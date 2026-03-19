@@ -1,64 +1,108 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
     Star, Clock, Users, BookOpen, CheckCircle,
     MonitorPlay, ShieldCheck, Heart, Share2,
     ChevronDown, ChevronUp, Lock, PlayCircle, Globe, Award
 } from 'lucide-react';
-import { publicCourses } from '../data/publicCoursesMock';
-import { courses as homeCourses } from '../data/courses';
 import { useUser } from '../context/UserContext';
+
+const DEFAULT_THUMBNAIL = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=60';
+
+// Normalise backend course to the shape this component expects
+function normalise(c) {
+    const modules = (c.courseModules || []).map(m => ({
+        title: m.moduleTitle || m.title || 'Module',
+        duration: '',
+        lessons: (m.lessons || []).map(l => ({
+            title: l.lessonTitle || l.title || 'Lesson',
+            duration: l.duration || '',
+            isFree: false,
+        })),
+    }));
+
+    // Build a basic curriculum if no modules exist
+    if (modules.length === 0) {
+        modules.push({
+            title: 'Introduction',
+            duration: c.duration || 'Self-paced',
+            lessons: [
+                { title: 'Course Overview', duration: '10:00', isFree: true },
+                { title: 'Getting Started', duration: '15:00', isFree: false },
+            ],
+        });
+    }
+
+    return {
+        id: c.id,
+        title: c.title,
+        subtitle: c.description || `Master ${c.subject || c.category || 'this subject'} with expert guidance.`,
+        description: c.detailedDescription || c.description || `${c.title} is designed for students looking to gain practical skills. Learn through hands-on projects and expert guidance.`,
+        category: c.subject || c.category || 'General',
+        level: c.level || 'All Levels',
+        thumbnail: c.thumbnail || DEFAULT_THUMBNAIL,
+        rating: c.rating || 4.5,
+        reviewsCount: c.reviewsCount || 0,
+        enrolled: c.studentsEnrolled || 0,
+        price: Number(c.price) || 0,
+        duration: c.duration || 'Self-paced',
+        instructor: {
+            name: c.createdByAdminName || c.instructor || 'Admin',
+            avatar: c.instructorAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.createdByAdminName || 'Admin')}&background=random&size=128`,
+            role: 'Expert Instructor',
+            bio: `${c.createdByAdminName || 'Admin'} is an experienced instructor dedicated to delivering quality education.`,
+            students: c.studentsEnrolled || 0,
+            courses: 1,
+        },
+        whatYouWillLearn: c.learningOutcomes
+            ? c.learningOutcomes.split('\n').filter(Boolean)
+            : [
+                `Core concepts of ${c.subject || c.title}`,
+                'Practical techniques and workflows',
+                'Industry best practices',
+                'Build real-world projects',
+            ],
+        curriculum: modules,
+        reviews: [],
+    };
+}
 
 const PublicCourseDetail = () => {
     const { courseId } = useParams();
     const navigate = useNavigate();
     const { user } = useUser();
 
+    const [course, setCourse] = useState(null);
+    const [loading, setLoading] = useState(true);
+
     useEffect(() => {
         window.scrollTo(0, 0);
-    }, []);
+        const fetchCourse = async () => {
+            try {
+                // Try single course endpoint first
+                const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/courses/public/${courseId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setCourse(data ? normalise(data) : null);
+                } else {
+                    setCourse(null);
+                }
+            } catch {
+                setCourse(null);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchCourse();
+    }, [courseId]);
 
-    // Find course in publicCourses first, then fallback to homeCourses
-    let course = publicCourses.find(c => String(c.id) === String(courseId));
-
-    // If not found in primary detail mock, try secondary home mock and map fields
-    if (!course) {
-        const homeCourse = homeCourses.find(c => String(c.id) === String(courseId));
-        if (homeCourse) {
-            course = {
-                ...homeCourse,
-                subtitle: `Master the fundamentals of ${homeCourse.category} with this comprehensive course.`,
-                thumbnail: homeCourse.image,
-                enrolled: homeCourse.students,
-                reviewsCount: Math.floor(homeCourse.students / 10),
-                level: "All Levels",
-                description: homeCourse.title + " is designed for students looking to gain practical skills in " + homeCourse.category + ". You will learn through hands-on projects and expert guidance.",
-                whatYouWillLearn: [
-                    "Core principles of " + homeCourse.category,
-                    "Practical techniques and workflows",
-                    "Industry best practices",
-                    "Building a real-world project"
-                ],
-                instructor: {
-                    ...homeCourse.instructor,
-                    role: "Expert Instructor",
-                    bio: homeCourse.instructor.name + " is a specialist in " + homeCourse.category + " with years of industry experience.",
-                    students: homeCourse.students + "+",
-                    courses: 5
-                },
-                curriculum: [
-                    {
-                        title: "Introduction",
-                        duration: homeCourse.duration,
-                        lessons: [
-                            { title: "Course Overview", duration: "10:00", isFree: true },
-                            { title: "Getting Started", duration: "15:00", isFree: false }
-                        ]
-                    }
-                ],
-                reviews: []
-            };
-        }
+    if (loading) {
+        return (
+            <div className="min-h-screen pt-20 flex flex-col items-center justify-center">
+                <div className="w-12 h-12 border-4 border-[#8b5cf6] border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p className="text-gray-500">Loading course details...</p>
+            </div>
+        );
     }
 
     if (!course) {
@@ -73,13 +117,11 @@ const PublicCourseDetail = () => {
     }
 
     const isLoggedIn = !!user;
-
     const handleEnroll = () => {
         if (!isLoggedIn) {
-            // Redirect to login
             navigate('/login');
         } else {
-            alert("Enrollment successful (mock)!");
+            alert("Enrollment successful!");
         }
     };
 

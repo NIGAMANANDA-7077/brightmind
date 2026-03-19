@@ -1,48 +1,58 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Bell, Sun, Moon, Menu, X, Check } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Search, Bell, Sun, Moon, Menu, X, Check, Calendar } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTeacher } from '../context/TeacherContext';
 import { useTheme } from '../../context/ThemeContext';
-import axios from 'axios';
+import { useNotifications } from '../../hooks/useNotifications';
 
 // =========================================================
 // Teacher Topbar
 // =========================================================
 
+// Inline notification detail modal
+const NotifModal = ({ notif, onClose }) => {
+    if (!notif) return null;
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4" onClick={onClose}>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full" onClick={e => e.stopPropagation()}>
+                <div className="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                    <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2"><span>📢</span> Notification</h3>
+                    <button onClick={onClose}><X size={18} className="text-gray-400" /></button>
+                </div>
+                <div className="p-6">
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">{notif.title}</h2>
+                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap text-sm">{notif.message}</p>
+                    <p className="text-xs text-gray-400 mt-4 flex items-center gap-1"><Calendar size={11} />{new Date(notif.createdAt).toLocaleString()}</p>
+                </div>
+                <div className="p-4 bg-gray-50 dark:bg-gray-700/30 flex justify-end">
+                    <button onClick={onClose} className="px-5 py-2 bg-[#8b5cf6] text-white rounded-xl font-bold text-sm hover:bg-[#7c3aed]">Close</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const Topbar = ({ toggleMobileSidebar }) => {
     const { profile } = useTeacher();
     const { isDarkMode, toggleTheme } = useTheme();
-    const [notifications, setNotifications] = useState([]);
+    const navigate = useNavigate();
+    const { notifications, unread, unreadCount, markAsRead, markAllAsRead } = useNotifications();
     const [showNotifications, setShowNotifications] = useState(false);
+    const [selectedNotif, setSelectedNotif] = useState(null);
 
-    useEffect(() => {
-        const fetchNotifications = async () => {
-            try {
-                // Fetch All & Teacher role notifications
-                const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/notifications?role=Teacher`);
-                setNotifications(res.data);
-            } catch (err) {
-                console.error("Failed to fetch notifications", err);
-            }
-        };
-
-        fetchNotifications();
-        const interval = setInterval(fetchNotifications, 30000);
-        return () => clearInterval(interval);
-    }, []);
-
-    const unreadCount = notifications.filter(n => !n.read).length;
-
-    const markAsRead = async (id) => {
-        try {
-            await axios.patch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/notifications/${id}/read`);
-            setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
-        } catch (err) {
-            console.error(err);
+    const handleNotifClick = (notif) => {
+        if (!notif.read) markAsRead(notif.id);
+        setShowNotifications(false);
+        // If notification has a link, navigate there; otherwise show modal
+        if (notif.link) {
+            navigate(notif.link);
+        } else {
+            setSelectedNotif(notif);
         }
     };
 
     return (
+        <>
         <header className="h-16 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between px-6 sticky top-0 z-30 transition-colors">
             {/* Left: Mobile Toggle & Search */}
             <div className="flex items-center gap-4">
@@ -81,31 +91,41 @@ const Topbar = ({ toggleMobileSidebar }) => {
                     >
                         <Bell size={20} />
                         {unreadCount > 0 && (
-                            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800"></span>
+                            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center px-0.5">
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
                         )}
                     </button>
 
                     {showNotifications && (
                         <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden animate-fadeIn">
                             <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                                <h3 className="font-bold text-gray-900 dark:text-white">Notifications</h3>
-                                <span className="text-xs bg-[#8b5cf6]/10 text-[#8b5cf6] px-2 py-1 rounded-full">{unreadCount} New</span>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="font-bold text-gray-900 dark:text-white">Notifications</h3>
+                                    {unreadCount > 0 && <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">{unreadCount} new</span>}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {unreadCount > 0 && (
+                                        <button onClick={markAllAsRead} className="text-xs text-[#8b5cf6] hover:text-purple-700 font-semibold">Mark all read</button>
+                                    )}
+                                    <button onClick={() => setShowNotifications(false)}><X size={16} className="text-gray-400" /></button>
+                                </div>
                             </div>
                             <div className="max-h-[300px] overflow-y-auto">
-                                {notifications.length > 0 ? (
+                                {unread.length > 0 ? (
                                     <div className="divide-y divide-gray-50 dark:divide-gray-700">
-                                        {notifications.map((notif) => (
-                                            <div key={notif.id} className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex gap-3 ${!notif.read ? 'bg-purple-50/50 dark:bg-purple-900/10' : ''}`}>
-                                                <div className="flex-1">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{notif.title}</p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{notif.message}</p>
-                                                    <p className="text-[10px] text-gray-400 mt-2">{new Date(notif.createdAt).toLocaleDateString()}</p>
+                                        {unread.slice(0, 6).map((notif) => (
+                                            <div
+                                                key={notif.id}
+                                                onClick={() => handleNotifClick(notif)}
+                                                className="p-4 hover:bg-purple-50/60 dark:hover:bg-purple-900/10 transition-colors flex gap-3 cursor-pointer bg-purple-50/30 dark:bg-purple-900/5"
+                                            >
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-1">{notif.title}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{notif.message}</p>
+                                                    <p className="text-[10px] text-gray-400 mt-1">{new Date(notif.createdAt).toLocaleString()}</p>
                                                 </div>
-                                                {!notif.read && (
-                                                    <button onClick={() => markAsRead(notif.id)} className="text-[#8b5cf6] hover:text-purple-700 p-1 self-start">
-                                                        <Check size={16} />
-                                                    </button>
-                                                )}
+                                                <span className="w-2 h-2 bg-[#8b5cf6] rounded-full self-start mt-2 shrink-0"></span>
                                             </div>
                                         ))}
                                     </div>
@@ -114,6 +134,15 @@ const Topbar = ({ toggleMobileSidebar }) => {
                                         No new notifications
                                     </div>
                                 )}
+                            </div>
+                            <div className="p-3 border-t border-gray-100 dark:border-gray-700">
+                                <Link
+                                    to="/teacher/notifications"
+                                    onClick={() => setShowNotifications(false)}
+                                    className="block w-full py-2 text-xs font-bold text-center text-[#8b5cf6] bg-[#8b5cf6]/5 hover:bg-[#8b5cf6]/10 rounded-xl transition-all"
+                                >
+                                    View All History
+                                </Link>
                             </div>
                         </div>
                     )}
@@ -135,6 +164,10 @@ const Topbar = ({ toggleMobileSidebar }) => {
                 </div>
             </div>
         </header>
+
+        {/* Notification Detail Modal */}
+        <NotifModal notif={selectedNotif} onClose={() => setSelectedNotif(null)} />
+    </>
     );
 };
 

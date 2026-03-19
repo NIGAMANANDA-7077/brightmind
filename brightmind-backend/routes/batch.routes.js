@@ -12,6 +12,7 @@ const {
     getBatchStudents,
     getTeacherBatches,
     getStudentBatch,
+    getStudentBatches,
     getStudentLiveClasses
 } = require('../controllers/batchController');
 
@@ -20,6 +21,7 @@ router.get('/teacher/my-batches', protect, authorize('Teacher'), getTeacherBatch
 
 // ─── Student Routes (MUST be before /:id) ──────────────────
 router.get('/student/my-batch', protect, authorize('Student'), getStudentBatch);
+router.get('/student/my-batches', protect, authorize('Student'), getStudentBatches);
 router.get('/student/live-classes', protect, authorize('Student'), getStudentLiveClasses);
 
 // ─── Admin Routes ──────────────────────────────────────────

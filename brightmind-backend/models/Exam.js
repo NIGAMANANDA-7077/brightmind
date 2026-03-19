@@ -66,6 +66,10 @@ const Exam = sequelize.define('Exam', {
     status: {
         type: DataTypes.ENUM('Draft', 'Active', 'Completed'),
         defaultValue: 'Draft'
+    },
+    tenantId: {
+        type: DataTypes.UUID,
+        allowNull: true
     }
 }, {
     timestamps: true

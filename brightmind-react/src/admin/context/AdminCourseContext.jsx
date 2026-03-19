@@ -59,10 +59,11 @@ export const AdminCourseProvider = ({ children }) => {
         const course = courses.find(c => c.id === id);
         if (!course) return;
 
-        const newStatus = course.status === 'Published' || course.status === 'Active' ? 'Draft' : 'Active';
+        const isPublished = course.status === 'Published' || course.status === 'Active';
+        const newStatus = isPublished ? 'Draft' : 'Active';
         try {
             const res = await api.put(`/courses/${id}`, { status: newStatus });
-            setCourses(prev => prev.map(c => c.id === id ? res.data : c));
+            setCourses(prev => prev.map(c => c.id === id ? { ...c, ...res.data, status: newStatus } : c));
         } catch (err) {
             console.error("Toggle publish status err", err);
         }

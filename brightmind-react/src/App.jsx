@@ -20,8 +20,6 @@ import StudentCourses from './pages/student/Courses'; // Updated import
 import StudentLive from './pages/student/Live';
 import StudentChat from './pages/student/Chat';
 import StudentProgress from './pages/student/Progress';
-import StudentCertificates from './pages/student/Certificates';
-import CertificateDetail from './pages/student/CertificateDetail';
 import StudentSupport from './pages/student/Support';
 import StudentSettings from './pages/student/Settings';
 import StudentAssignments from './pages/student/Assignments';
@@ -44,7 +42,6 @@ import AdminLayout from './admin/layouts/AdminLayout';
 import AdminDashboard from './admin/pages/Dashboard';
 import AdminCourses from './admin/pages/Courses';
 import AdminCourseCreate from './admin/pages/CourseCreate';
-import AdminMedia from './admin/pages/Media';
 import AdminPlaceholder from './admin/pages/AdminPlaceholder';
 import AdminQuestions from './admin/pages/Questions';
 import AdminExams from './admin/pages/Exams';
@@ -79,8 +76,14 @@ import { ThemeProvider } from './context/ThemeContext';
 import { BatchProvider } from './context/BatchContext';
 import TeacherBatches from './teacher/pages/Batches';
 import TeacherBatchDetail from './teacher/pages/BatchDetail';
+import TeacherNotifications from './teacher/pages/Notifications';
 import AdminBatches from './admin/pages/Batches';
 import AdminBatchCreate from './admin/pages/BatchCreate';
+import AdminEnrollmentRequests from './admin/pages/EnrollmentRequests';
+import AdminNotifications from './admin/pages/Notifications';
+import AdminManagement from './admin/pages/AdminManagement';
+import AdminActivity from './admin/pages/AdminActivity';
+import AllAdminActivities from './admin/pages/AllAdminActivities';
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -105,8 +108,8 @@ function App() {
 
   return (
     <ThemeProvider>
-      <SharedAnnouncementsProvider>
-        <UserProvider>
+      <UserProvider>
+        <SharedAnnouncementsProvider>
           <div className="min-h-screen flex flex-col overflow-x-hidden w-full">
             <ScrollToTop />
             {!isDashboardRoute && <Navbar />}
@@ -140,8 +143,6 @@ function App() {
                         <Route path="forum/course/:courseId" element={<CourseForum />} />
                         <Route path="forum/thread/:threadId" element={<ThreadDetail />} />
                         <Route path="progress" element={<StudentProgress />} />
-                        <Route path="certificates" element={<StudentCertificates />} />
-                        <Route path="certificate/:certificateId" element={<CertificateDetail />} />
                         <Route path="assignments" element={<StudentAssignments />} />
                         <Route path="assignment/:assignmentId" element={<AssignmentDetail />} />
                         <Route path="exams" element={<StudentExams />} />
@@ -171,6 +172,7 @@ function App() {
                         <Route path="forum/thread/:threadId" element={<ThreadDetail />} />
                         <Route path="questions" element={<AdminQuestions />} />
                         <Route path="exams" element={<TeacherExams />} />
+                        <Route path="notifications" element={<TeacherNotifications />} />
                         <Route path="profile" element={<TeacherProfile />} />
                         <Route path="*" element={<Navigate to="dashboard" replace />} />
                       </Route>
@@ -193,9 +195,6 @@ function App() {
                         <Route path="courses" element={<AdminCourses />} />
                         <Route path="courses/create" element={<AdminCourseCreate />} />
                         <Route path="courses/edit/:id" element={<AdminCourseCreate />} />
-
-                        {/* Media Management */}
-                        <Route path="media" element={<AdminMedia />} />
 
                         {/* Question Bank & Exams */}
                         <Route path="questions" element={<AdminQuestions />} />
@@ -221,6 +220,11 @@ function App() {
                         <Route path="batches" element={<AdminBatches />} />
                         <Route path="batches/create" element={<AdminBatchCreate />} />
                         <Route path="batches/edit/:id" element={<AdminBatchCreate />} />
+                        <Route path="enrollment-requests" element={<AdminEnrollmentRequests />} />
+                        <Route path="notifications" element={<AdminNotifications />} />
+                        <Route path="admin-management" element={<AdminManagement />} />
+                        <Route path="admin-management/activity-logs" element={<AllAdminActivities />} />
+                        <Route path="admin-management/:id/activity" element={<AdminActivity />} />
                         <Route path="*" element={<AdminDashboard />} />
                       </Route>
 
@@ -231,9 +235,9 @@ function App() {
               </CourseProvider>
             </main>
             {!isDashboardRoute && <Footer />}
-          </div>
-        </UserProvider>
-      </SharedAnnouncementsProvider>
+            </div>
+        </SharedAnnouncementsProvider>
+      </UserProvider>
     </ThemeProvider>
   );
 }

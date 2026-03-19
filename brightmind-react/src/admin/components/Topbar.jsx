@@ -1,42 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, Bell, Sun, Moon, Menu, X, Check } from 'lucide-react';
 import { useUser } from '../../context/UserContext';
 import { useTheme } from '../../context/ThemeContext';
-import { Link } from 'react-router-dom';
-import axios from 'axios';
+import { Link, useNavigate } from 'react-router-dom';
+import { useNotifications } from '../../hooks/useNotifications';
 
 const Topbar = ({ toggleMobileSidebar }) => {
     const { user } = useUser();
     const { isDarkMode, toggleTheme } = useTheme();
-    const [notifications, setNotifications] = useState([]);
+    const navigate = useNavigate();
+    const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
     const [showNotifications, setShowNotifications] = useState(false);
+    const dropdownRef = useRef(null);
 
     useEffect(() => {
-        const fetchNotifications = async () => {
-            try {
-                // Fetch Notifications
-                const notifRes = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/notifications?role=Admin`);
-                setNotifications(notifRes.data);
-            } catch (err) {
-                console.error("Failed to fetch notifications", err);
+        const handleClickOutside = (e) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                setShowNotifications(false);
             }
         };
-
-        fetchNotifications();
-        // Optional: Poll every 30 seconds
-        const interval = setInterval(fetchNotifications, 30000);
-        return () => clearInterval(interval);
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const unreadCount = notifications.filter(n => !n.read).length;
-
-    const markAsRead = async (id) => {
-        try {
-            await axios.patch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/notifications/${id}/read`);
-            setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
-        } catch (err) {
-            console.error(err);
-        }
+    const handleNotifClick = (notif) => {
+        if (!notif.read) markAsRead(notif.id);
+        setShowNotifications(false);
+        if (notif.link) navigate(notif.link);
     };
 
     return (
@@ -71,38 +61,48 @@ const Topbar = ({ toggleMobileSidebar }) => {
                 </button>
 
                 {/* Notifications */}
-                <div className="relative">
+                <div className="relative" ref={dropdownRef}>
                     <button
                         onClick={() => setShowNotifications(!showNotifications)}
                         className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors relative"
                     >
                         <Bell size={20} />
                         {unreadCount > 0 && (
-                            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800"></span>
+                            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center px-0.5">
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
                         )}
                     </button>
 
                     {showNotifications && (
                         <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden animate-fadeIn">
                             <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                                <h3 className="font-bold text-gray-900 dark:text-white">Notifications</h3>
-                                <span className="text-xs bg-[#8b5cf6]/10 text-[#8b5cf6] px-2 py-1 rounded-full">{unreadCount} New</span>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="font-bold text-gray-900 dark:text-white">Notifications</h3>
+                                    {unreadCount > 0 && <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">{unreadCount} new</span>}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {unreadCount > 0 && (
+                                        <button onClick={markAllAsRead} className="text-xs text-[#8b5cf6] hover:text-purple-700 font-semibold">Mark all read</button>
+                                    )}
+                                    <button onClick={() => setShowNotifications(false)}><X size={16} className="text-gray-400" /></button>
+                                </div>
                             </div>
                             <div className="max-h-[300px] overflow-y-auto">
-                                {notifications.length > 0 ? (
+                                {notifications.filter(n => !n.read).length > 0 ? (
                                     <div className="divide-y divide-gray-50 dark:divide-gray-700">
-                                        {notifications.map((notif) => (
-                                            <div key={notif.id} className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex gap-3 ${!notif.read ? 'bg-purple-50/50 dark:bg-purple-900/10' : ''}`}>
-                                                <div className="flex-1">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{notif.title}</p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{notif.message}</p>
-                                                    <p className="text-[10px] text-gray-400 mt-2">{new Date(notif.createdAt).toLocaleString()}</p>
+                                        {notifications.filter(n => !n.read).slice(0, 8).map((notif) => (
+                                            <div
+                                                key={notif.id}
+                                                onClick={() => handleNotifClick(notif)}
+                                                className="p-4 hover:bg-purple-50/60 dark:hover:bg-purple-900/10 transition-colors flex gap-3 cursor-pointer bg-purple-50/30 dark:bg-purple-900/5"
+                                            >
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-1">{notif.title}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{notif.message}</p>
+                                                    <p className="text-[10px] text-gray-400 mt-1">{new Date(notif.createdAt).toLocaleString()}</p>
                                                 </div>
-                                                {!notif.read && (
-                                                    <button onClick={() => markAsRead(notif.id)} className="text-[#8b5cf6] hover:text-purple-700 p-1 self-start" title="Mark as read">
-                                                        <Check size={16} />
-                                                    </button>
-                                                )}
+                                                <span className="w-2 h-2 bg-[#8b5cf6] rounded-full self-start mt-2 shrink-0"></span>
                                             </div>
                                         ))}
                                     </div>
@@ -112,6 +112,15 @@ const Topbar = ({ toggleMobileSidebar }) => {
                                     </div>
                                 )}
                             </div>
+                            <div className="p-3 border-t border-gray-100 dark:border-gray-700">
+                                <Link
+                                    to="/admin/notifications"
+                                    onClick={() => setShowNotifications(false)}
+                                    className="block w-full py-2 text-xs font-bold text-center text-[#8b5cf6] bg-[#8b5cf6]/5 hover:bg-[#8b5cf6]/10 rounded-xl transition-all"
+                                >
+                                    View All History
+                                </Link>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -119,7 +128,9 @@ const Topbar = ({ toggleMobileSidebar }) => {
                 <div className="flex items-center gap-3 pl-4 border-l border-gray-100 dark:border-gray-700">
                     <div className="text-right hidden sm:block">
                         <p className="text-sm font-bold text-gray-900 dark:text-white leading-none">{user?.name || 'Admin User'}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Super Admin</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {user?.role === 'SuperAdmin' ? 'Super Admin' : 'Admin'}
+                        </p>
                     </div>
                     <Link to="/admin/settings">
                         <img

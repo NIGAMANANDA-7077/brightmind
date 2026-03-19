@@ -32,11 +32,19 @@ const Submission = sequelize.define('Submission', {
         allowNull: true
     },
     status: {
-        type: DataTypes.ENUM('Pending', 'Submitted', 'Graded'),
+        type: DataTypes.ENUM('Pending', 'Submitted', 'Late', 'Graded'),
         defaultValue: 'Pending'
     },
     grade: {
         type: DataTypes.INTEGER,
+        allowNull: true
+    },
+    feedback: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    comment: {
+        type: DataTypes.TEXT,
         allowNull: true
     },
     submittedAt: {

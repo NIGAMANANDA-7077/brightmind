@@ -217,6 +217,7 @@ export const AdminResultsProvider = ({ children }) => {
     return (
         <AdminResultsContext.Provider value={{
             results: filteredResults, // Exposed list
+            allResults: results,      // All unfiltered results (for trend chart)
             resultStats,
             filters,
             groupByBatch,

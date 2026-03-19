@@ -17,14 +17,42 @@ exports.register = async (req, res, next) => {
 
 exports.login = async (req, res, next) => {
     try {
-        const { email, password } = req.body;
-        const userPayload = await authService.loginUser(email, password);
+        const { email, password, role } = req.body;
+        const userPayload = await authService.loginUser(email, password, role);
         res.json({
             success: true,
             user: userPayload
         });
     } catch (error) {
+        if (error.message === 'Account suspended') {
+            return res.status(403).json({ success: false, message: 'Your account has been suspended. Please contact your administrator.' });
+        }
+        if (error.message === 'Role mismatch') {
+            return res.status(401).json({ success: false, message: 'Invalid role selected for this account' });
+        }
         if (error.message === 'Invalid email or password') {
+            return res.status(401).json({ success: false, message: error.message });
+        }
+        res.status(500).json({ success: false, message: 'Server error during login' });
+    }
+};
+
+exports.studentLogin = async (req, res, next) => {
+    try {
+        const { studentId, password } = req.body;
+        if (!studentId || !password)
+            return res.status(400).json({ success: false, message: 'Student ID and password are required' });
+
+        const userPayload = await authService.loginWithStudentId(
+            studentId.trim().toUpperCase(),
+            password
+        );
+        res.json({ success: true, user: userPayload });
+    } catch (error) {
+        if (error.message === 'Account suspended') {
+            return res.status(403).json({ success: false, message: 'Your account has been suspended. Please contact your administrator.' });
+        }
+        if (error.message === 'Invalid student ID or password') {
             return res.status(401).json({ success: false, message: error.message });
         }
         res.status(500).json({ success: false, message: 'Server error during login' });

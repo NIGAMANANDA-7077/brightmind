@@ -2,6 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: light;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --border-color: #e2e8f0;
+  --card-bg: #ffffff;
+  --button-primary: linear-gradient(to right, #7c3aed, #6366f1);
+  --accent-500: #8b5cf6;
+  --accent-600: #7c3aed;
+  --shadow-elevated: 0 14px 35px rgba(15, 23, 42, 0.08);
+}
+
+:root[data-theme='dark'],
+.dark {
+  color-scheme: dark;
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --border-color: #334155;
+  --card-bg: #1e293b;
+  --button-primary: linear-gradient(to right, #8b5cf6, #6366f1);
+  --shadow-elevated: 0 14px 35px rgba(0, 0, 0, 0.35);
+}
+
+:root, .dark {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
@@ -9,21 +40,41 @@
 
   html,
   body {
-    @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 antialiased transition-colors duration-300;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    @apply antialiased transition-colors duration-300;
     font-family: 'Inter', sans-serif;
     overflow-x: hidden;
     width: 100%;
     max-width: 100%;
   }
+
+  body {
+    background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05), transparent 25%),
+      radial-gradient(circle at 90% 10%, rgba(139, 92, 246, 0.05), transparent 20%),
+      var(--bg-primary);
+  }
+
+  a {
+    color: inherit;
+  }
+
+  ::selection {
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--text-primary);
+  }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-primary hover:bg-primary-dark text-white font-medium px-6 py-3 rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-105;
+    background-image: var(--button-primary);
+    @apply text-white font-medium px-6 py-3 rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-105;
   }
 
   .btn-secondary {
-    @apply bg-gray-100 hover:bg-gray-200 text-gray-900 font-medium px-6 py-3 rounded-lg transition-all duration-300;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    @apply font-medium px-6 py-3 rounded-lg transition-all duration-300 border border-[color:var(--border-color)];
   }
 
   .container-custom {
@@ -48,6 +99,37 @@
 
   .card-hover {
     @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-2;
+  }
+
+  .theme-surface {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+  }
+
+  .theme-card {
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .theme-muted {
+    color: var(--text-secondary);
+  }
+
+  .theme-border {
+    border-color: var(--border-color);
+  }
+
+  .btn-gradient {
+    background-image: var(--button-primary);
+    color: #fff;
+  }
+
+  .input-surface {
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    border-color: var(--border-color);
   }
 }
 
@@ -319,6 +401,114 @@
 
 .animate-scale-in {
   animation: scaleIn 0.3s ease-out forwards;
+}
+
+.card-surface,
+.panel-surface,
+.table-surface,
+.form-surface {
+  background-color: var(--card-bg);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+input,
+textarea,
+select {
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-secondary);
+}
+
+.chart-surface text,
+.recharts-wrapper text {
+  fill: var(--text-secondary);
+}
+
+.chart-surface .recharts-cartesian-grid-horizontal line,
+.chart-surface .recharts-cartesian-grid-vertical line,
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: var(--border-color);
+}
+
+.chart-surface .recharts-tooltip-wrapper,
+.recharts-default-tooltip,
+.recharts-tooltip-wrapper {
+  color: var(--text-primary) !important;
+  background-color: var(--card-bg) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.nav-blur {
+  background-color: color-mix(in srgb, var(--card-bg) 90%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.dark .shadow-soft {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.dark .bg-white,
+.dark .bg-gray-50,
+.dark .bg-gray-100,
+.bg-white,
+.bg-gray-50,
+.bg-gray-100 {
+  background-color: var(--card-bg) !important;
+}
+
+.dark .bg-gray-200,
+.dark .bg-gray-300,
+.bg-gray-200,
+.bg-gray-300 {
+  background-color: var(--bg-secondary) !important;
+}
+
+.dark .border-gray-50,
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-gray-300,
+.border-gray-50,
+.border-gray-100,
+.border-gray-200,
+.border-gray-300 {
+  border-color: var(--border-color) !important;
+}
+
+.dark .text-gray-900,
+.dark .text-gray-800,
+.text-gray-900,
+.text-gray-800 {
+  color: var(--text-primary) !important;
+}
+
+.dark .text-gray-700,
+.dark .text-gray-600,
+.dark .text-gray-500,
+.dark .text-gray-400,
+.text-gray-700,
+.text-gray-600,
+.text-gray-500,
+.text-gray-400 {
+  color: var(--text-secondary) !important;
+}
+
+.dark .border-gray-700,
+.dark .border-gray-800 {
+  border-color: var(--border-color) !important;
+}
+
+.dark .bg-gray-800,
+.dark .bg-gray-900 {
+  background-color: var(--bg-primary) !important;
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */

@@ -32,9 +32,9 @@ export const UserProvider = ({ children }) => {
         loadUserFromStorage();
     }, []);
 
-    const login = async (email, password) => {
+    const login = async (email, password, role) => {
         try {
-            const res = await api.post('/auth/login', { email, password });
+            const res = await api.post('/auth/login', { email, password, role });
             if (res.data.success) {
                 setUser(res.data.user);
                 localStorage.setItem('brightmind_user', JSON.stringify(res.data.user));
@@ -43,6 +43,24 @@ export const UserProvider = ({ children }) => {
         } catch (error) {
             return {
                 success: false,
+                suspended: error.response?.status === 403,
+                message: error.response?.data?.message || 'Login failed'
+            };
+        }
+    };
+
+    const studentLogin = async (studentId, password) => {
+        try {
+            const res = await api.post('/auth/student-login', { studentId, password });
+            if (res.data.success) {
+                setUser(res.data.user);
+                localStorage.setItem('brightmind_user', JSON.stringify(res.data.user));
+                return { success: true, role: res.data.user.role };
+            }
+        } catch (error) {
+            return {
+                success: false,
+                suspended: error.response?.status === 403,
                 message: error.response?.data?.message || 'Login failed'
             };
         }
@@ -73,7 +91,13 @@ export const UserProvider = ({ children }) => {
         if (!user) return;
 
         try {
-            const res = await api.put(`/users/${user.id}`, updatedData);
+            let res;
+            if (user.role === 'Teacher') {
+                // Teachers use the dedicated profile endpoint (restricted fields)
+                res = await api.put('/teacher/profile', updatedData);
+            } else {
+                res = await api.put(`/users/${user.id}`, updatedData);
+            }
             if (res.data.success) {
                 const mergedUser = { ...user, ...res.data.user };
                 setUser(mergedUser);
@@ -81,11 +105,68 @@ export const UserProvider = ({ children }) => {
             }
         } catch (err) {
             console.error("Failed to update user backend data", err);
+            throw err;
+        }
+    };
+
+    const refreshUser = async () => {
+        try {
+            const res = await api.get('/auth/me');
+            if (res.data.success) {
+                const currentToken = JSON.parse(localStorage.getItem('brightmind_user') || '{}').token;
+                const fresh = { ...res.data.user, token: currentToken };
+                setUser(fresh);
+                localStorage.setItem('brightmind_user', JSON.stringify(fresh));
+                return fresh;
+            }
+        } catch (err) {
+            console.error('Failed to refresh user', err);
+        }
+    };
+
+    const impersonate = async (adminId) => {
+        try {
+            const res = await api.post(`/superadmin/impersonate-admin/${adminId}`);
+            if (res.data.success) {
+                setUser(res.data.user);
+                localStorage.setItem('brightmind_user', JSON.stringify(res.data.user));
+                return { success: true };
+            }
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Impersonation failed'
+            };
+        }
+    };
+
+    const exitImpersonation = async () => {
+        try {
+            const res = await api.post('/superadmin/exit-impersonation');
+            if (res.data.success) {
+                setUser(res.data.user);
+                localStorage.setItem('brightmind_user', JSON.stringify(res.data.user));
+                return { success: true };
+            }
+        } catch (error) {
+            console.error('Failed to exit impersonation', error);
+            return { success: false, message: 'Failed to exit impersonation' };
         }
     };
 
     return (
-        <UserContext.Provider value={{ user, loading, login, register, logout, updateUser }}>
+        <UserContext.Provider value={{ 
+            user, 
+            loading, 
+            login, 
+            studentLogin, 
+            register, 
+            logout, 
+            updateUser, 
+            refreshUser,
+            impersonate,
+            exitImpersonation
+        }}>
             {children}
         </UserContext.Provider>
     );

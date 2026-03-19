@@ -1,4 +1,4 @@
-const { ExamResult, ExamAttempt, Exam, StudentAnswer, QuestionBank, User, Batch } = require('../models/associations');
+const { ExamResult, ExamAttempt, Exam, StudentAnswer, QuestionBank, User, Batch, Notification } = require('../models/associations');
 const { Op } = require('sequelize');
 
 exports.getLeaderboard = async (req, res, next) => {
@@ -84,25 +84,36 @@ exports.publishResults = async (req, res, next) => {
         const exam = await Exam.findByPk(examId);
         if (!exam) return res.status(404).json({ success: false, message: "Exam not found" });
 
-        // Find all evaluated attempts that don't have results yet
+        // Tenant ownership check
+        if (req.user.role !== 'SuperAdmin' && req.user.tenantId && exam.tenantId && exam.tenantId !== req.user.tenantId) {
+            return res.status(403).json({ success: false, message: 'Access denied: wrong tenant' });
+        }
+
+        // Block re-publishing if already completed
+        if (exam.status === 'Completed') {
+            return res.status(409).json({ success: false, message: "Results have already been published for this exam." });
+        }
+
+        // Include both 'submitted' (auto-graded MCQ) and 'evaluated' attempts
         const attempts = await ExamAttempt.findAll({
-            where: { examId, status: 'evaluated' }
+            where: { examId, status: { [Op.in]: ['submitted', 'evaluated'] } }
         });
 
         const newResults = [];
         for (const attempt of attempts) {
             const existing = await ExamResult.findOne({ where: { examId, studentId: attempt.studentId } });
             if (!existing) {
-                const percentage = (attempt.totalScore / exam.totalMarks) * 100;
+                const percentage = exam.totalMarks > 0 ? (attempt.totalScore / exam.totalMarks) * 100 : 0;
                 newResults.push({
                     examId,
                     studentId: attempt.studentId,
-                    batchId: attempt.batchId,
+                    batchId: attempt.batchId || exam.batchId,
                     totalMarks: exam.totalMarks,
                     obtainedMarks: attempt.totalScore,
                     percentage,
                     status: percentage >= exam.passingMarks ? 'pass' : 'fail',
-                    publishedAt: new Date()
+                    publishedAt: new Date(),
+                    tenantId: exam.tenantId || null
                 });
             }
         }
@@ -113,7 +124,22 @@ exports.publishResults = async (req, res, next) => {
 
         await exam.update({ status: 'Completed' });
 
-        res.json({ success: true, message: `${newResults.length} results published.` });
+        // Send notification to affected students/batch
+        try {
+            const notifData = {
+                title: `Results Published: ${exam.title}`,
+                message: `Results for "${exam.title}" have been published. Check the leaderboard to see your score!`,
+                type: 'success',
+                role: 'Student',
+                referenceId: examId,
+                batchId: exam.batchId || null
+            };
+            await Notification.create(notifData);
+        } catch (notifErr) {
+            console.error("Notification creation failed (non-critical):", notifErr.message);
+        }
+
+        res.json({ success: true, message: `${newResults.length} results published. Students have been notified.` });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -121,7 +147,13 @@ exports.publishResults = async (req, res, next) => {
 
 exports.getAllResults = async (req, res, next) => {
     try {
+        const where = {};
+        if (req.user.role !== 'SuperAdmin' && req.user.tenantId) {
+            where.tenantId = req.user.tenantId;
+        }
+
         const results = await ExamResult.findAll({
+            where,
             include: [
                 { model: Exam, as: 'exam', attributes: ['title', 'examType', 'courseId'] },
                 { model: User, as: 'student', attributes: ['id', 'name', 'email', 'batch'] }
@@ -129,8 +161,6 @@ exports.getAllResults = async (req, res, next) => {
             order: [['createdAt', 'DESC']]
         });
 
-        // Map for frontend compatibility if needed, but Context maps it too.
-        // Frontend expects: id, studentId, score (obtainedMarks), totalMarks, submittedAt (createdAt)
         const mappedResults = results.map(r => ({
             id: r.id,
             studentId: r.studentId,

@@ -3,10 +3,7 @@ import { NavLink } from 'react-router-dom';
 import {
     LayoutDashboard,
     BookOpen,
-    Image,
-    HelpCircle,
     FileText,
-    Calendar,
     ClipboardList,
     Users,
     Megaphone,
@@ -16,25 +13,33 @@ import {
     ChevronRight,
     X,
     Layers,
-    Video
+    Video,
+    UserCheck,
+    ShieldCheck
 } from 'lucide-react';
+import { useUser } from '../../context/UserContext';
 
 
 const Sidebar = ({ isOpen, onClose }) => {
     const [collapsed, setCollapsed] = useState(false);
+    const { user } = useUser();
 
-    const navItems = [
-        { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-        { to: '/admin/courses', icon: BookOpen, label: 'Courses' },
-        { to: '/admin/exams', icon: FileText, label: 'Exams' },
-        { to: '/admin/exams/schedule', icon: Calendar, label: 'Scheduler' },
-        { to: '/admin/results', icon: ClipboardList, label: 'Results' },
-        { to: '/admin/users', icon: Users, label: 'Users' },
-        { to: '/admin/announcements', icon: Megaphone, label: 'Announcements' },
-        { to: '/admin/live-classes', icon: Video, label: 'Live Classes' },
-        { to: '/admin/batches', icon: Layers, label: 'Batches' },
-        { to: '/admin/settings', icon: Settings, label: 'Settings' },
-    ];
+    const navItems = user?.role === 'SuperAdmin' 
+        ? [
+            { to: '/admin/admin-management', icon: ShieldCheck, label: 'Admin Management' },
+          ]
+        : [
+            { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            { to: '/admin/courses', icon: BookOpen, label: 'Courses' },
+            { to: '/admin/exams', icon: FileText, label: 'Exams' },
+            { to: '/admin/results', icon: ClipboardList, label: 'Results' },
+            { to: '/admin/users', icon: Users, label: 'Users' },
+            { to: '/admin/announcements', icon: Megaphone, label: 'Announcements' },
+            { to: '/admin/live-classes', icon: Video, label: 'Live Classes' },
+            { to: '/admin/batches', icon: Layers, label: 'Batches' },
+            { to: '/admin/enrollment-requests', icon: UserCheck, label: 'Enrollments' },
+            { to: '/admin/settings', icon: Settings, label: 'Settings' },
+        ];
 
     return (
         <>
@@ -60,14 +65,14 @@ const Sidebar = ({ isOpen, onClose }) => {
                     </button>
                 </div>
 
-                {/* Navigation */}
+                {/* Main Navigation */}
                 <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1 hide-scrollbar">
                     {navItems.map((item) => (
                         <NavLink
                             key={item.to}
                             to={item.to}
                             end={item.to === '/admin/dashboard'}
-                            onClick={onClose} // Close on mobile navigation
+                            onClick={onClose}
                             className={({ isActive }) => `
                 flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group font-medium
                 ${isActive
@@ -81,6 +86,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                             )}
                         </NavLink>
                     ))}
+
                 </nav>
 
                 {/* Footer */}

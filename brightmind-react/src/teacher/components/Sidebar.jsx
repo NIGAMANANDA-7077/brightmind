@@ -16,8 +16,8 @@ import {
     FileQuestion,
     MessageSquare,
     Layers,
-    Database,
 } from 'lucide-react';
+import { useBatch } from '../../context/BatchContext';
 
 
 // =========================================================
@@ -33,13 +33,13 @@ const navItems = [
     { to: '/teacher/batches', icon: Layers, label: 'My Batches' },
     { to: '/teacher/announcements', icon: Megaphone, label: 'Announcements' },
     { to: '/teacher/forum', icon: MessageSquare, label: 'Forum' },
-    { to: '/teacher/questions', icon: Database, label: 'Question Bank' },
     { to: '/teacher/exams', icon: FileQuestion, label: 'Exams' },
     { to: '/teacher/profile', icon: UserCircle, label: 'Profile' },
 ];
 
 const Sidebar = ({ isOpen, onClose }) => {
     const [collapsed, setCollapsed] = useState(false);
+    const { myBatches } = useBatch();
 
     return (
         <>
@@ -92,7 +92,16 @@ const Sidebar = ({ isOpen, onClose }) => {
               `}
                         >
                             <item.icon size={22} className={collapsed ? 'mx-auto' : ''} />
-                            {!collapsed && <span>{item.label}</span>}
+                            {!collapsed && (
+                                <span className="flex-1 flex items-center justify-between">
+                                    {item.label}
+                                    {item.to === '/teacher/batches' && myBatches.length > 0 && (
+                                        <span className="ml-2 text-[10px] font-black bg-[#8b5cf6] text-white px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                                            {myBatches.length}
+                                        </span>
+                                    )}
+                                </span>
+                            )}
                         </NavLink>
                     ))}
                 </nav>

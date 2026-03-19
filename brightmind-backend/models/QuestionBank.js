@@ -42,6 +42,10 @@ const QuestionBank = sequelize.define('QuestionBank', {
     explanation: {
         type: DataTypes.TEXT,
         allowNull: true
+    },
+    tenantId: {
+        type: DataTypes.UUID,
+        allowNull: true
     }
 }, {
     timestamps: true

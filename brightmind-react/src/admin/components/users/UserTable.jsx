@@ -1,12 +1,24 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MoreVertical, Edit, Trash2, Ban, Unlock, CheckCircle, Users as UsersIcon } from 'lucide-react';
+import { Edit, Trash2, Ban, CheckCircle, Users as UsersIcon, AlertTriangle } from 'lucide-react';
 
 const UserTable = ({ users, roleFilter, onStatusChange, onDelete, selectedIds = [], onSelectionChange, onAssignBatch }) => {
     const navigate = useNavigate();
     const filteredUsers = users.filter(u => u.role === roleFilter);
 
+    const [deleteTarget, setDeleteTarget] = useState(null); // user to be deleted
+    const [deleting, setDeleting] = useState(false);
+
+    const handleDeleteConfirm = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
+        await onDelete(deleteTarget.id);
+        setDeleting(false);
+        setDeleteTarget(null);
+    };
+
     return (
+        <>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn">
             <div className="overflow-x-auto">
                 <table className="w-full">
@@ -114,6 +126,13 @@ const UserTable = ({ users, roleFilter, onStatusChange, onDelete, selectedIds = 
                                             {user.status === 'Active' ? <Ban size={16} /> : <CheckCircle size={16} />}
                                         </button>
                                         <button
+                                            onClick={() => setDeleteTarget(user)}
+                                            className="p-2 hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors"
+                                            title="Delete User"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                        <button
                                             onClick={() => navigate(`/admin/users-edit/${user.id}`)}
                                             className="p-2 hover:bg-[#8b5cf6]/10 hover:text-[#8b5cf6] rounded-lg transition-colors"
                                             title="Edit User"
@@ -134,6 +153,69 @@ const UserTable = ({ users, roleFilter, onStatusChange, onDelete, selectedIds = 
                 </table>
             </div>
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {deleteTarget && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fadeIn">
+                    {/* Header */}
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-red-100 rounded-xl">
+                            <Trash2 size={22} className="text-red-600" />
+                        </div>
+                        <h2 className="text-xl font-bold text-gray-900">Delete User</h2>
+                    </div>
+
+                    <p className="text-gray-600 mb-4">
+                        Are you sure you want to permanently delete <span className="font-bold text-gray-900">{deleteTarget.name}</span>?
+                    </p>
+
+                    {/* Warning Box */}
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+                        <div className="flex items-start gap-2 mb-2">
+                            <AlertTriangle size={16} className="text-red-600 mt-0.5 shrink-0" />
+                            <p className="text-sm font-bold text-red-700">
+                                This action will permanently delete the user and all related data including:
+                            </p>
+                        </div>
+                        <ul className="text-sm text-red-600 space-y-1 ml-6 list-disc">
+                            <li>Student progress</li>
+                            <li>Assignment submissions</li>
+                            <li>Exam attempts and results</li>
+                            <li>Course enrollments</li>
+                            <li>Batch assignments</li>
+                            <li>Attendance records</li>
+                            <li>Notifications</li>
+                            <li>Activity history</li>
+                        </ul>
+                    </div>
+
+                    {/* Buttons */}
+                    <div className="flex justify-end gap-3">
+                        <button
+                            onClick={() => setDeleteTarget(null)}
+                            disabled={deleting}
+                            className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleDeleteConfirm}
+                            disabled={deleting}
+                            className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                            {deleting ? (
+                                <>
+                                    <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : 'Delete Permanently'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+        </>
     );
 };
 

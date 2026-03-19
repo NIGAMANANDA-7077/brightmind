@@ -18,6 +18,10 @@ const Module = sequelize.define('Module', {
     moduleOrder: {
         type: DataTypes.INTEGER,
         defaultValue: 0
+    },
+    tenantId: {
+        type: DataTypes.UUID,
+        allowNull: true
     }
 }, {
     timestamps: true,
