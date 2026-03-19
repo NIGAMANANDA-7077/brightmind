@@ -14,8 +14,11 @@ const seedData = async () => {
     try {
         console.log("Connecting to database...");
         await sequelize.authenticate();
-        await sequelize.sync({ force: true }); // Reset DB
-        console.log("Database synced and reset!");
+        
+        // Use alter: true for Railway (preserves existing tables, updates schema)
+        // force: true would drop all tables which fails due to FK constraints
+        await sequelize.sync({ alter: true });
+        console.log("Database synced (schema updated)!");
 
         // 0. Seed Users
         const users = await User.bulkCreate([
