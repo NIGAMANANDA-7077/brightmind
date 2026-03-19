@@ -2,11 +2,12 @@ const Course = require('../models/Course');
 const Assignment = require('../models/Assignment');
 const Announcement = require('../models/Announcement');
 const Exam = require('../models/Exam');
-const Question = require('../models/Question');
+const QuestionBank = require('../models/QuestionBank');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const Enrollment = require('../models/Enrollment');
 const LiveClass = require('../models/LiveClass');
+const Tenant = require('../models/Tenant');
 const sequelize = require('../config/db');
 
 const seedData = async () => {
@@ -124,7 +125,7 @@ const seedData = async () => {
         console.log(`✅ Seeded ${announcements.length} announcements`);
 
         // 4. Seed Questions
-        const questions = await Question.bulkCreate([
+        const questions = await QuestionBank.bulkCreate([
             {
                 text: 'What is the SI unit of Force?',
                 topic: 'Physics',
