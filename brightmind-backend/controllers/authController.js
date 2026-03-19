@@ -24,6 +24,7 @@ exports.login = async (req, res, next) => {
             user: userPayload
         });
     } catch (error) {
+        console.error('❌ Login error:', error);
         if (error.message === 'Account suspended') {
             return res.status(403).json({ success: false, message: 'Your account has been suspended. Please contact your administrator.' });
         }
@@ -33,7 +34,7 @@ exports.login = async (req, res, next) => {
         if (error.message === 'Invalid email or password') {
             return res.status(401).json({ success: false, message: error.message });
         }
-        res.status(500).json({ success: false, message: 'Server error during login' });
+        res.status(500).json({ success: false, message: 'Server error during login', error: error.message });
     }
 };
 
