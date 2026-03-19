@@ -11,8 +11,11 @@ const seed = async () => {
     try {
         await sequelize.authenticate();
         console.log('--- Comprehensive Seeding Started ---');
-        await sequelize.sync({ force: true });
-        console.log('Database synced fresh');
+        
+        // Use alter: true instead of force: true for production
+        // This will NOT drop tables, only sync schema changes
+        await sequelize.sync({ alter: true });
+        console.log('Database synced (schema updated)');
 
         // 0. Create Admins
         const [superAdmin] = await User.findOrCreate({
