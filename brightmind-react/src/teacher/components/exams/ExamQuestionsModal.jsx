@@ -28,6 +28,7 @@ const ExamQuestionsModal = ({ exam, onClose }) => {
     const [form, setForm] = useState(emptyForm());
 
     const fetchQuestions = async () => {
+        setLoading(true);
         try {
             const res = await api.get(`/exams/${exam.id}/questions`);
             setQuestions(res.data.questions || []);
@@ -94,7 +95,7 @@ const ExamQuestionsModal = ({ exam, onClose }) => {
             fetchQuestions();
         } catch (err) {
             console.error(err);
-            alert('Failed to save question');
+            alert(err.response?.data?.message || 'Failed to save question');
         } finally {
             setSaving(false);
         }

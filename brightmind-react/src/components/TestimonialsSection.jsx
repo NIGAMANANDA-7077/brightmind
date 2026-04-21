@@ -3,7 +3,7 @@ import { Quote } from 'lucide-react';
 import { testimonials } from '../data/testimonials';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
 
-import MeshBackground from './MeshBackground';
+
 
 const TestimonialCard = ({ testimonial }) => (
   <div className="rounded-3xl p-8 hover:shadow-lg transition-shadow duration-300 flex flex-col h-full w-[400px] flex-shrink-0 mx-4 bg-[color:var(--card-bg)] border border-[color:var(--border-color)]">
@@ -41,7 +41,7 @@ const TestimonialsSection = () => {
 
   return (
     <section className="relative py-20 overflow-hidden">
-      <MeshBackground />
+
       <div className="container-custom relative z-10">
         <div
           ref={ref}

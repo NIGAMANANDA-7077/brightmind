@@ -35,7 +35,7 @@ const FAQItem = ({ question, answer, isOpen, onClick }) => {
   );
 };
 
-import MeshBackground from './MeshBackground';
+
 
 const FAQSection = () => {
   const [openIndex, setOpenIndex] = useState(0);
@@ -66,7 +66,7 @@ const FAQSection = () => {
 
   return (
     <section className="relative py-20 md:py-28 overflow-hidden">
-      <MeshBackground />
+
       <div className="container-custom relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24 items-start">
 

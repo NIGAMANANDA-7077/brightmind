@@ -104,7 +104,6 @@ const Courses = () => {
                                 {statusBadge(course.status)}
                             </div>
 
-                            <p className="text-sm text-gray-500 mb-4 line-clamp-2">{course.description}</p>
 
                             {/* Stats */}
                             <div className="flex items-center gap-4 text-xs text-gray-500 mb-4">

@@ -121,4 +121,57 @@ const sendWelcomeEmail = async ({ name, email, password, role, courses = [], bat
     return { sent: true };
 };
 
-module.exports = { sendWelcomeEmail };
+/**
+ * Send a password reset email with a token link.
+ */
+const sendPasswordResetEmail = async ({ name, email, resetToken }) => {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+        console.warn('[Email] EMAIL_USER / EMAIL_PASS not configured — skipping reset email.');
+        return { skipped: true };
+    }
+
+    const transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.EMAIL_PORT || '587', 10),
+        secure: process.env.EMAIL_SECURE === 'true',
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+        },
+    });
+
+    const firstName = name.trim().split(' ')[0];
+    const resetUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
+
+    const htmlBody = `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;border:1px solid #e5e7eb;border-radius:12px;">
+      <div style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);padding:28px;border-radius:8px 8px 0 0;text-align:center;">
+        <h1 style="color:white;margin:0;font-size:24px;">Reset Your Password</h1>
+      </div>
+      <div style="padding:28px;background:#ffffff;">
+        <p style="color:#374151;font-size:16px;">Hello <strong>${firstName}</strong>,</p>
+        <p style="color:#6b7280;margin-top:0;">We received a request to reset your BrightMind LMS password. Click the button below to create a new password. This link will expire in <strong>15 minutes</strong>.</p>
+        <div style="text-align:center;margin:32px 0;">
+          <a href="${resetUrl}"
+             style="display:inline-block;background:#8b5cf6;color:white;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;">
+            Reset Password
+          </a>
+        </div>
+        <p style="color:#6b7280;font-size:14px;">Or copy this link into your browser:</p>
+        <p style="background:#f3f4f6;padding:10px 14px;border-radius:6px;word-break:break-all;font-size:13px;color:#374151;">${resetUrl}</p>
+        <p style="color:#9ca3af;font-size:13px;margin-top:24px;">If you did not request a password reset, please ignore this email. Your password will remain unchanged.</p>
+      </div>
+    </div>`;
+
+    await transporter.sendMail({
+        from: `"BrightMind LMS" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: 'BrightMind LMS – Password Reset Request',
+        html: htmlBody,
+        text: `Hello ${firstName},\n\nReset your password here (expires in 15 minutes):\n${resetUrl}\n\nIf you did not request this, ignore this email.`,
+    });
+
+    return { sent: true };
+};
+
+module.exports = { sendWelcomeEmail, sendPasswordResetEmail };

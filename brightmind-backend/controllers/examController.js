@@ -171,7 +171,7 @@ exports.getStudentExams = async (req, res, next) => {
         const tenantId = req.user.tenantId || null;
         const { User, Batch, Enrollment, Course, ExamQuestion } = require('../models/associations');
         
-        // Find enrolled batches via User
+        // Find enrolled batches via User (join table) + direct batchId fallback
         const studentWithBatches = await User.findByPk(studentId, {
             include: [{ model: Batch, as: 'enrolledBatches', attributes: ['id', 'courseId'] }]
         });
@@ -184,17 +184,33 @@ exports.getStudentExams = async (req, res, next) => {
 
         const batchIds = studentWithBatches ? studentWithBatches.enrolledBatches.map(b => b.id) : [];
         const courseIdsFromBatches = studentWithBatches ? studentWithBatches.enrolledBatches.map(b => b.courseId).filter(Boolean) : [];
+
+        // Legacy direct batch assignment (User.batchId)
+        if (studentWithBatches?.batchId && !batchIds.includes(studentWithBatches.batchId)) {
+            batchIds.push(studentWithBatches.batchId);
+            const directBatch = await Batch.findByPk(studentWithBatches.batchId, { attributes: ['id', 'courseId'] });
+            if (directBatch?.courseId && !courseIdsFromBatches.includes(directBatch.courseId)) {
+                courseIdsFromBatches.push(directBatch.courseId);
+            }
+        }
         const courseIdsFromEnrollments = directEnrollments.map(e => e.courseId);
         
         const allCourseIds = [...new Set([...courseIdsFromBatches, ...courseIdsFromEnrollments])];
 
+        const examOrClauses = [];
+        if (batchIds.length > 0) examOrClauses.push({ batchId: { [Op.in]: batchIds } });
+        if (allCourseIds.length > 0) examOrClauses.push({ batchId: null, courseId: { [Op.in]: allCourseIds } });
+
         const examWhere = {
-            status: 'Active',
-            [Op.or]: [
-                { batchId: { [Op.in]: batchIds } },
-                { batchId: null, courseId: { [Op.in]: allCourseIds } }
-            ]
+            status: 'Active'
         };
+        if (examOrClauses.length > 0) {
+            examWhere[Op.or] = examOrClauses;
+        } else {
+            // Student has no access to any exams if not enrolled
+            examWhere.id = null; // Forces an empty result safely
+        }
+
         // Tenant isolation: student only sees exams from their own tenant
         if (tenantId) examWhere.tenantId = tenantId;
 
@@ -381,34 +397,70 @@ exports.addQuestionToExam = async (req, res, next) => {
         const { questionText, questionType, marks, options } = req.body;
         if (!questionText) return res.status(400).json({ success: false, message: 'questionText is required' });
 
-        // Create QuestionBank entry
-        const question = await QuestionBank.create({
-            courseId: exam.courseId || 'general',
-            teacherId: req.user.id,
-            questionText,
-            questionType: questionType || 'MCQ',
-            marks: marks || 1,
-            difficulty: 'Medium',
-            tenantId: req.user?.tenantId || null
-        });
+        const allowedTypes = ['MCQ', 'Multiple Select', 'True False', 'Short Answer', 'Long Answer', 'Numerical'];
+        const type = allowedTypes.includes(questionType) ? questionType : 'MCQ';
+        const numericMarks = Number(marks) > 0 ? Number(marks) : 1;
 
-        // Create options for MCQ and True False
-        if (options && options.length > 0) {
-            await QuestionOption.bulkCreate(options.map(opt => ({
-                questionId: question.id,
-                optionText: opt.optionText,
-                isCorrect: opt.isCorrect || false
-            })));
+        const needsOptions = ['MCQ', 'Multiple Select', 'True False'].includes(type);
+        let normalizedOptions = [];
+        if (needsOptions) {
+            const incoming = Array.isArray(options) ? options : [];
+            normalizedOptions = incoming
+                .map(opt => ({ optionText: (opt.optionText || '').trim(), isCorrect: !!opt.isCorrect }))
+                .filter(opt => opt.optionText);
+            if (normalizedOptions.length < 2) {
+                return res.status(400).json({ success: false, message: 'At least two options are required' });
+            }
+            if (!normalizedOptions.some(o => o.isCorrect)) {
+                return res.status(400).json({ success: false, message: 'Mark at least one option as correct' });
+            }
+            if (type === 'True False') {
+                const trueOpt = normalizedOptions.find(o => o.optionText.toLowerCase() === 'true');
+                const falseOpt = normalizedOptions.find(o => o.optionText.toLowerCase() === 'false');
+                normalizedOptions = [
+                    { optionText: 'True', isCorrect: !!trueOpt?.isCorrect },
+                    { optionText: 'False', isCorrect: !!falseOpt?.isCorrect }
+                ];
+                if (!normalizedOptions.some(o => o.isCorrect)) {
+                    return res.status(400).json({ success: false, message: 'Select True or False as correct' });
+                }
+            }
         }
 
-        const count = await ExamQuestion.count({ where: { examId } });
-        const eq = await ExamQuestion.create({ examId, questionId: question.id, marks, order: count + 1 });
+        const t = await sequelize.transaction();
+        try {
+            const question = await QuestionBank.create({
+                courseId: exam.courseId || 'general',
+                teacherId: req.user.id,
+                questionText,
+                questionType: type,
+                marks: numericMarks,
+                difficulty: 'Medium',
+                tenantId: req.user?.tenantId || null
+            }, { transaction: t });
 
-        const full = await ExamQuestion.findByPk(eq.id, {
-            include: [{ model: QuestionBank, as: 'question', include: [{ model: QuestionOption, as: 'options' }] }]
-        });
+            if (needsOptions) {
+                await QuestionOption.bulkCreate(normalizedOptions.map(opt => ({
+                    questionId: question.id,
+                    optionText: opt.optionText,
+                    isCorrect: opt.isCorrect || false
+                })), { transaction: t });
+            }
 
-        res.json({ success: true, examQuestion: full });
+            const count = await ExamQuestion.count({ where: { examId }, transaction: t });
+            const eq = await ExamQuestion.create({ examId, questionId: question.id, marks: numericMarks, order: count + 1 }, { transaction: t });
+
+            await t.commit();
+
+            const full = await ExamQuestion.findByPk(eq.id, {
+                include: [{ model: QuestionBank, as: 'question', include: [{ model: QuestionOption, as: 'options' }] }]
+            });
+
+            res.json({ success: true, examQuestion: full });
+        } catch (err) {
+            await t.rollback();
+            throw err;
+        }
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -432,23 +484,64 @@ exports.updateExamQuestion = async (req, res, next) => {
             if (!exam) return res.status(403).json({ success: false, message: 'Access denied: wrong tenant' });
         }
 
-        await eq.question.update({ questionText, marks: marks || eq.question.marks });
-        await eq.update({ marks: marks || eq.marks });
+        const numericMarks = Number(marks) > 0 ? Number(marks) : (eq.marks || eq.question.marks || 1);
+        const updatedText = questionText || eq.question.questionText;
+        const type = eq.question.questionType;
+        const needsOptions = ['MCQ', 'Multiple Select', 'True False'].includes(type);
 
-        if (options && options.length > 0) {
-            await QuestionOption.destroy({ where: { questionId: eq.questionId } });
-            await QuestionOption.bulkCreate(options.map(opt => ({
-                questionId: eq.questionId,
-                optionText: opt.optionText,
-                isCorrect: opt.isCorrect || false
-            })));
+        let normalizedOptions = [];
+        if (needsOptions) {
+            const incoming = Array.isArray(options) ? options : [];
+            normalizedOptions = incoming
+                .map(opt => ({ optionText: (opt.optionText || '').trim(), isCorrect: !!opt.isCorrect }))
+                .filter(opt => opt.optionText);
+            if (normalizedOptions.length < 2) {
+                return res.status(400).json({ success: false, message: 'At least two options are required' });
+            }
+            if (!normalizedOptions.some(o => o.isCorrect)) {
+                return res.status(400).json({ success: false, message: 'Mark at least one option as correct' });
+            }
+            if (type === 'True False') {
+                const trueOpt = normalizedOptions.find(o => o.optionText.toLowerCase() === 'true');
+                const falseOpt = normalizedOptions.find(o => o.optionText.toLowerCase() === 'false');
+                normalizedOptions = [
+                    { optionText: 'True', isCorrect: !!trueOpt?.isCorrect },
+                    { optionText: 'False', isCorrect: !!falseOpt?.isCorrect }
+                ];
+                if (!normalizedOptions.some(o => o.isCorrect)) {
+                    return res.status(400).json({ success: false, message: 'Select True or False as correct' });
+                }
+            }
         }
 
-        const full = await ExamQuestion.findByPk(eqId, {
-            include: [{ model: QuestionBank, as: 'question', include: [{ model: QuestionOption, as: 'options' }] }]
-        });
+        const t = await sequelize.transaction();
+        try {
+            await eq.question.update({ questionText: updatedText, marks: numericMarks }, { transaction: t });
+            await eq.update({ marks: numericMarks }, { transaction: t });
 
-        res.json({ success: true, examQuestion: full });
+            if (needsOptions) {
+                await QuestionOption.destroy({ where: { questionId: eq.questionId }, transaction: t });
+                await QuestionOption.bulkCreate(normalizedOptions.map(opt => ({
+                    questionId: eq.questionId,
+                    optionText: opt.optionText,
+                    isCorrect: opt.isCorrect || false
+                })), { transaction: t });
+            } else {
+                // Clear any stale options for descriptive questions
+                await QuestionOption.destroy({ where: { questionId: eq.questionId }, transaction: t });
+            }
+
+            await t.commit();
+
+            const full = await ExamQuestion.findByPk(eqId, {
+                include: [{ model: QuestionBank, as: 'question', include: [{ model: QuestionOption, as: 'options' }] }]
+            });
+
+            res.json({ success: true, examQuestion: full });
+        } catch (err) {
+            await t.rollback();
+            throw err;
+        }
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }

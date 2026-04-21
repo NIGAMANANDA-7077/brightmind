@@ -9,23 +9,34 @@ const { protect } = require('../middlewares/authMiddleware');
 router.get('/', protect, async (req, res) => {
     try {
         const { Op } = require('sequelize');
+        const BatchStudent = require('../models/BatchStudent');
         const user = req.user;
 
-        let whereClause;
+        // Collect batch IDs for students (join table + legacy batchId)
+        let batchIds = [];
+        if (user.role === 'Student') {
+            const rows = await BatchStudent.findAll({ where: { studentId: user.id }, attributes: ['batchId'] });
+            batchIds = rows.map(r => r.batchId);
+            if (user.batchId && !batchIds.includes(user.batchId)) batchIds.push(user.batchId);
+        }
+
+        const conditions = [
+            { userId: user.id },
+            { userId: null, role: 'All' },
+            { userId: null, role: user.role }
+        ];
+
+        if (batchIds.length > 0) {
+            conditions.push({ batchId: { [Op.in]: batchIds } });
+        }
+
+        // Admins keep their special broadcast path
         if (user.role === 'Admin') {
-            // Admins see their own notifications + any broadcast-to-Admin notifications
-            whereClause = {
-                [Op.or]: [
-                    { userId: user.id },
-                    { userId: null, role: 'Admin' }
-                ]
-            };
-        } else {
-            whereClause = { userId: user.id };
+            conditions.push({ userId: null, role: 'Admin' });
         }
 
         const notifications = await Notification.findAll({
-            where: whereClause,
+            where: { [Op.or]: conditions },
             order: [['createdAt', 'DESC']],
             limit: 50
         });

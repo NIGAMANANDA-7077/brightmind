@@ -19,8 +19,8 @@ function normalise(c) {
         reviewsCount: c.reviewsCount || 0,
         price: Number(c.price) || 0,
         instructor: {
-            name: c.createdByAdminName || c.instructor || 'Admin',
-            avatar: c.instructorAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.createdByAdminName || 'Admin')}&background=random`,
+            name: c.instructor || 'Instructor',
+            avatar: c.instructorAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.instructor || 'Instructor')}&background=8b5cf6&color=fff`,
         },
     };
 }

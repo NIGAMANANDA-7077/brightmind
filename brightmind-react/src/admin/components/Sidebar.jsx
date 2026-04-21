@@ -15,7 +15,8 @@ import {
     Layers,
     Video,
     UserCheck,
-    ShieldCheck
+    ShieldCheck,
+    Newspaper
 } from 'lucide-react';
 import { useUser } from '../../context/UserContext';
 
@@ -27,6 +28,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     const navItems = user?.role === 'SuperAdmin' 
         ? [
             { to: '/admin/admin-management', icon: ShieldCheck, label: 'Admin Management' },
+            { to: '/admin/blogs', icon: Newspaper, label: 'Blog Posts' },
           ]
         : [
             { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -38,6 +40,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             { to: '/admin/live-classes', icon: Video, label: 'Live Classes' },
             { to: '/admin/batches', icon: Layers, label: 'Batches' },
             { to: '/admin/enrollment-requests', icon: UserCheck, label: 'Enrollments' },
+            { to: '/admin/blogs', icon: Newspaper, label: 'Blog Posts' },
             { to: '/admin/settings', icon: Settings, label: 'Settings' },
         ];
 

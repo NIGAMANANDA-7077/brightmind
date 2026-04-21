@@ -1,7 +1,8 @@
 import React from 'react';
-import { Users, Wallet, Video, Lightbulb, CheckCircle, Twitter, Linkedin, Facebook } from 'lucide-react';
+import { Users, Wallet, Video, Lightbulb, CheckCircle } from 'lucide-react';
 import FAQSection from '../components/FAQSection';
 import CTASection from '../components/CTASection';
+import TeachersSection from '../components/TeachersSection';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
 
 const About = () => {
@@ -10,7 +11,6 @@ const About = () => {
     const [statsRef, statsVisible] = useScrollAnimation({ threshold: 0.1, once: true });
     const [valuesRef, valuesVisible] = useScrollAnimation({ threshold: 0.1, once: true });
     const [chooseRef, chooseVisible] = useScrollAnimation({ threshold: 0.1, once: true });
-    const [teamRef, teamVisible] = useScrollAnimation({ threshold: 0.1, once: true });
 
     const stats = [
         { value: "100,000+", label: "Students Enrolled" },
@@ -44,15 +44,6 @@ const About = () => {
             desc: "Adaptive learning paths tailored to your specific career goals and needs.",
             color: "bg-yellow-100 text-yellow-600"
         }
-    ];
-
-    const team = [
-        { name: "Marvin McKinney", role: "UX/UI Designer", img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80" },
-        { name: "Cody Fisher", role: "Web Developer", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80" },
-        { name: "Bessie Cooper", role: "Product Manager", img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=300&q=80" },
-        { name: "Wade Warren", role: "Digital Marketer", img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80" },
-        { name: "Ronald Richards", role: "Data Scientist", img: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80" },
-        { name: "Albert Flores", role: "Cyber Security", img: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=300&q=80" },
     ];
 
     return (
@@ -175,45 +166,7 @@ const About = () => {
                 </div>
             </section>
 
-            {/* Team Section */}
-            <section className="py-20 bg-[#fbfbfb]">
-                <div className="container-custom">
-                    <h2
-                        className={`text-center text-4xl font-bold text-gray-900 mb-16 transition-all duration-1000 ${teamVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
-                    >
-                        Meet Our Expert Team
-                    </h2>
-
-                    <div
-                        ref={teamRef}
-                        className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 stagger-children ${teamVisible ? 'visible' : ''}`}
-                    >
-                        {team.map((member, index) => (
-                            <div key={index} className="bg-white rounded-3xl overflow-hidden hover:shadow-xl transition-shadow duration-300 group scroll-slide-up">
-                                <div className="h-64 overflow-hidden">
-                                    <img
-                                        src={member.img}
-                                        alt={member.name}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                    />
-                                </div>
-                                <div className="p-6">
-                                    <h3 className="text-xl font-bold text-gray-900">{member.name}</h3>
-                                    <p className="text-[#8b5cf6] font-medium mb-4">{member.role}</p>
-
-                                    <div className="flex gap-4">
-                                        {[Facebook, Twitter, Linkedin].map((Icon, i) => (
-                                            <button key={i} className="text-gray-400 hover:text-[#8b5cf6] transition-colors">
-                                                <Icon size={20} />
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
+            <TeachersSection />
 
             {/* Reuse FAQ & CTA */}
             <FAQSection />

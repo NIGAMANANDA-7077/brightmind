@@ -1,16 +1,17 @@
 import React from 'react';
 import { Facebook, Instagram, Twitter, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
 
 const Footer = () => {
   const [ref, isVisible] = useScrollAnimation({ threshold: 0.1, once: true });
 
   const companyLinks = [
-    { name: 'Home', href: '#home' },
-    { name: 'About Us', href: '#about' },
-    { name: 'Courses', href: '#courses' },
-    { name: 'Blog', href: '#blog' },
-    { name: 'Contact', href: '#contact' },
+    { name: 'Home', to: '/' },
+    { name: 'About Us', to: '/about' },
+    { name: 'Courses', to: '/courses' },
+    { name: 'Blog', to: '/blog' },
+    { name: 'Contact', to: '/contact' },
   ];
 
   const socialLinks = [
@@ -62,15 +63,15 @@ const Footer = () => {
             <div>
               <h3 className="text-gray-900 font-bold text-xl mb-8">Company</h3>
               <ul className="space-y-4">
-                {companyLinks.map((link) => (
+              {companyLinks.map((link) => (
                   <li key={link.name}>
-                    <a
-                      href={link.href}
+                    <Link
+                      to={link.to}
                       className="text-gray-500 hover:text-[#8b5cf6] transition-colors font-medium flex items-center gap-2 group"
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-[#8b5cf6] opacity-0 group-hover:opacity-100 transition-opacity"></span>
                       {link.name}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -82,24 +83,24 @@ const Footer = () => {
               <ul className="space-y-6">
                 <li>
                   <a
-                    href="tel:+621829017"
+                    href="tel:+917077629919"
                     className="flex items-start gap-4 text-gray-500 hover:text-[#8b5cf6] transition-colors group"
                   >
                     <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center flex-shrink-0 group-hover:bg-[#8b5cf6] group-hover:text-white transition-colors duration-300">
                       <Phone className="w-5 h-5" />
                     </div>
-                    <div className="mt-2 text-base font-medium">1234567890</div>
+                    <div className="mt-2 text-base font-medium">+91 7077629919</div>
                   </a>
                 </li>
                 <li>
                   <a
-                    href="mailto:hello@brightmind.com"
+                    href="mailto:nigamcut@gmail.com"
                     className="flex items-start gap-4 text-gray-500 hover:text-[#8b5cf6] transition-colors group"
                   >
                     <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center flex-shrink-0 group-hover:bg-[#8b5cf6] group-hover:text-white transition-colors duration-300">
                       <Mail className="w-5 h-5" />
                     </div>
-                    <div className="mt-2 text-base font-medium">hello@brightmind.com</div>
+                    <div className="mt-2 text-base font-medium">nigamcut@gmail.com</div>
                   </a>
                 </li>
                 <li>

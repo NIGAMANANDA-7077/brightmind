@@ -13,6 +13,8 @@ import Blog from './pages/Blog';
 import BlogDetail from './pages/BlogDetail';
 import Contact from './pages/Contact';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import DashboardPlaceholder from './pages/DashboardPlaceholder';
 import StudentLayout from './layouts/StudentLayout';
 import Dashboard from './pages/student/Dashboard';
@@ -84,6 +86,8 @@ import AdminNotifications from './admin/pages/Notifications';
 import AdminManagement from './admin/pages/AdminManagement';
 import AdminActivity from './admin/pages/AdminActivity';
 import AllAdminActivities from './admin/pages/AllAdminActivities';
+import AdminBlogs from './admin/pages/Blogs';
+import AdminBlogCreate from './admin/pages/BlogCreate';
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -128,6 +132,8 @@ function App() {
                       <Route path="/blog/:slug" element={<BlogDetail />} />
                       <Route path="/contact" element={<Contact />} />
                       <Route path="/login" element={<Login />} />
+                      <Route path="/forgot-password" element={<ForgotPassword />} />
+                      <Route path="/reset-password/:token" element={<ResetPassword />} />
 
                       {/* Dashboard Routes */}
                       <Route path="/student" element={<BatchProvider role="Student"><StudentLayout /></BatchProvider>}>
@@ -225,6 +231,9 @@ function App() {
                         <Route path="admin-management" element={<AdminManagement />} />
                         <Route path="admin-management/activity-logs" element={<AllAdminActivities />} />
                         <Route path="admin-management/:id/activity" element={<AdminActivity />} />
+                        <Route path="blogs" element={<AdminBlogs />} />
+                        <Route path="blogs/create" element={<AdminBlogCreate />} />
+                        <Route path="blogs/edit/:id" element={<AdminBlogCreate />} />
                         <Route path="*" element={<AdminDashboard />} />
                       </Route>
 

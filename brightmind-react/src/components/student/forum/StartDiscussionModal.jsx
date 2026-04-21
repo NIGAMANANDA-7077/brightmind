@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, MessageSquare, Loader } from 'lucide-react';
+import { X, MessageSquare, Loader, AlertCircle } from 'lucide-react';
 import api from '../../../utils/axiosConfig';
+import { useUser } from '../../../context/UserContext';
 
 const StartDiscussionModal = ({ isOpen, onClose, onSubmit }) => {
     const [title, setTitle] = useState('');
@@ -14,20 +15,36 @@ const StartDiscussionModal = ({ isOpen, onClose, onSubmit }) => {
     const [filteredBatches, setFilteredBatches] = useState([]);
     const [loadingData, setLoadingData] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [errors, setErrors] = useState({});
+    const [submitError, setSubmitError] = useState('');
+
+    const { user } = useUser();
 
     useEffect(() => {
-        if (!isOpen) return;
+        if (!isOpen || !user) return;
         const loadData = async () => {
             setLoadingData(true);
             try {
-                const [cRes, bRes] = await Promise.all([
-                    api.get('/teacher/courses'),
-                    api.get('/teacher/batches')
-                ]);
-                setCourses(cRes.data.data || []);
-                setBatches(bRes.data.data || []);
+                let cRes, bRes;
+                if (user?.role === 'Teacher') {
+                    [cRes, bRes] = await Promise.all([
+                        api.get('/teacher/courses'),
+                        api.get('/teacher/batches')
+                    ]);
+                } else {
+                    // Student
+                    [cRes, bRes] = await Promise.all([
+                        api.get(`/courses/student/enrolled/${user.id}`).catch(() => ({ data: { data: [] } })),
+                        api.get('/batches/student/my-batches').catch(() => ({ data: { data: [] } }))
+                    ]);
+                }
+                
+                setCourses(cRes?.data?.data || cRes?.data || []);
+                
+                const bData = bRes?.data?.data || bRes?.data;
+                setBatches(Array.isArray(bData) ? bData : (bData?.allBatches || []));
             } catch (err) {
-                console.error('Failed to load teacher data:', err);
+                console.error('Failed to load role data:', err);
             } finally {
                 setLoadingData(false);
             }
@@ -61,15 +78,29 @@ const StartDiscussionModal = ({ isOpen, onClose, onSubmit }) => {
         setTags(tags.filter(tag => tag !== tagToRemove));
     };
 
+    const validate = () => {
+        const newErrors = {};
+        if (!title.trim()) newErrors.title = 'Title is required.';
+        if (!description.trim()) newErrors.description = 'Description is required.';
+        return newErrors;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!courseId || !batchId) return;
+        setSubmitError('');
+        const validationErrors = validate();
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors);
+            return;
+        }
+        setErrors({});
         setSubmitting(true);
         try {
             const selectedCourse = courses.find(c => c.id === courseId);
             await onSubmit({
-                title,
-                description,
+                title: title.trim(),
+                description: description.trim(),
                 courseId,
                 batchId,
                 courseName: selectedCourse?.title || '',
@@ -81,7 +112,10 @@ const StartDiscussionModal = ({ isOpen, onClose, onSubmit }) => {
             setBatchId('');
             setTags([]);
             setTagInput('');
+            setErrors({});
             onClose();
+        } catch (err) {
+            setSubmitError(err?.response?.data?.message || 'Failed to post discussion. Please try again.');
         } finally {
             setSubmitting(false);
         }
@@ -152,15 +186,21 @@ const StartDiscussionModal = ({ isOpen, onClose, onSubmit }) => {
 
                         {/* Title */}
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Title</label>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">
+                                Title <span className="text-red-500">*</span>
+                            </label>
                             <input
                                 type="text"
                                 value={title}
-                                onChange={(e) => setTitle(e.target.value)}
+                                onChange={(e) => { setTitle(e.target.value); if (errors.title) setErrors(p => ({ ...p, title: '' })); }}
                                 placeholder="e.g., Important notes on React Hooks"
-                                required
-                                className="w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 focus:border-[#8b5cf6] font-bold text-gray-900 placeholder:font-normal"
+                                className={`w-full p-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 focus:border-[#8b5cf6] font-bold text-gray-900 placeholder:font-normal transition-colors ${errors.title ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                             />
+                            {errors.title && (
+                                <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1">
+                                    <AlertCircle size={12} /> {errors.title}
+                                </p>
+                            )}
                         </div>
 
                         {/* Tags */}
@@ -190,31 +230,45 @@ const StartDiscussionModal = ({ isOpen, onClose, onSubmit }) => {
 
                         {/* Description */}
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Description</label>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">
+                                Description <span className="text-red-500">*</span>
+                            </label>
                             <textarea
                                 value={description}
-                                onChange={(e) => setDescription(e.target.value)}
+                                onChange={(e) => { setDescription(e.target.value); if (errors.description) setErrors(p => ({ ...p, description: '' })); }}
                                 placeholder="Describe the topic in detail..."
-                                required
                                 rows={6}
-                                className="w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 focus:border-[#8b5cf6] resize-none"
+                                className={`w-full p-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 focus:border-[#8b5cf6] resize-none transition-colors ${errors.description ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                             />
+                            {errors.description && (
+                                <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1">
+                                    <AlertCircle size={12} /> {errors.description}
+                                </p>
+                            )}
                         </div>
+
+                        {submitError && (
+                            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+                                <AlertCircle size={16} />
+                                {submitError}
+                            </div>
+                        )}
 
                         <div className="pt-4 flex justify-end gap-3">
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition-colors"
+                                disabled={submitting}
+                                className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="submit"
                                 disabled={submitting || !courseId || !batchId}
-                                className="px-6 py-3 rounded-xl bg-[#8b5cf6] text-white font-bold hover:bg-[#7c3aed] shadow-lg shadow-purple-500/20 transition-all active:scale-95 disabled:opacity-50"
+                                className="px-6 py-3 rounded-xl bg-[#8b5cf6] text-white font-bold hover:bg-[#7c3aed] shadow-lg shadow-purple-500/20 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
                             >
-                                {submitting ? 'Posting...' : 'Start Discussion'}
+                                {submitting ? <><Loader size={16} className="animate-spin" /> Posting...</> : 'Start Discussion'}
                             </button>
                         </div>
                     </form>

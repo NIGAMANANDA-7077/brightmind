@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { categories } from '../data/categories';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
 
-import MeshBackground from './MeshBackground';
+
 
 const CategoriesSection = () => {
   const scrollRef = useRef(null);
@@ -21,7 +21,7 @@ const CategoriesSection = () => {
 
   return (
     <section className="relative py-20 md:py-32 overflow-hidden">
-      <MeshBackground />
+
       <div className="container-custom relative z-10">
         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
 

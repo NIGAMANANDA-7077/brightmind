@@ -39,14 +39,14 @@ const authorize = (...roles) => {
             return res.status(401).json({ success: false, message: 'Not authorized, no user data' });
         }
 
-        const userRole = req.user.role?.toLowerCase();
+        const userRole = String(req.user.role || '').trim().toLowerCase();
 
         // 🌟 SuperAdmin bypass: SuperAdmin has FULL ACCESS to all modules
         if (userRole === 'superadmin') {
             return next();
         }
 
-        const allowedRoles = roles.map(r => r.toLowerCase());
+        const allowedRoles = roles.map(r => String(r || '').trim().toLowerCase());
 
         if (!allowedRoles.includes(userRole)) {
             console.warn(`[AUTH] Unauthorized: User Role="${req.user.role}", Required Roles="${roles}"`);

@@ -71,28 +71,31 @@ export const ThemeProvider = ({ children }) => {
 
     // Hydrate from backend if user preference exists
     useEffect(() => {
-        const user = getStoredUser();
-        if (!user?.token) {
-            setIsReady(true);
-            return;
-        }
-        let active = true;
         const fetchTheme = async () => {
+            const user = getStoredUser();
+            if (!user?.token) {
+                if (!isReady) setIsReady(true);
+                return;
+            }
             try {
                 const res = await api.get('/users/theme');
                 const saved = res.data?.theme;
-                if (active && (saved === 'dark' || saved === 'light')) {
+                if (saved === 'dark' || saved === 'light') {
                     lastPersisted.current = saved;
                     setTheme(saved);
                 }
             } catch (err) {
                 console.warn('Failed to fetch theme preference', err);
             } finally {
-                if (active) setIsReady(true);
+                setIsReady(true);
             }
         };
+
         fetchTheme();
-        return () => { active = false; };
+
+        const handleAuthChange = () => fetchTheme();
+        window.addEventListener('auth_change', handleAuthChange);
+        return () => window.removeEventListener('auth_change', handleAuthChange);
     }, []);
 
     const toggleTheme = () => {

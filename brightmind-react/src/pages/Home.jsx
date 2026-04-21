@@ -1,6 +1,7 @@
 import React from 'react';
 import Hero from '../components/Hero';
-import TeachersSection from '../components/TeachersSection';
+import BentoGrid from '../components/BentoGrid';
+
 import PartnersSection from '../components/PartnersSection';
 import CoursesSection from '../components/CoursesSection';
 import StatsSection from '../components/StatsSection';
@@ -12,8 +13,9 @@ const Home = () => {
     return (
         <>
             <Hero />
-            <TeachersSection />
-            <PartnersSection />
+            <BentoGrid />
+
+            {/* <PartnersSection /> */}
             <CoursesSection />
             <StatsSection />
             <TestimonialsSection />

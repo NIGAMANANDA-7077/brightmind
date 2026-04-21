@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import PageTransition from '../../components/common/PageTransition';
-import { User, Lock, Moon, Sun, Camera, Check, X, Loader2, HelpCircle, MessageSquare } from 'lucide-react';
+import { User, Lock, Moon, Sun, Camera, Check, X, Loader2, HelpCircle, MessageSquare, Eye, EyeOff } from 'lucide-react';
 import api from '../../utils/axiosConfig';
 import { useUser } from '../../context/UserContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -90,6 +90,7 @@ const Settings = () => {
     const [pw, setPw]       = useState({ current: '', next: '', confirm: '' });
     const [pwStatus, setPwStatus] = useState(null);
     const [pwError, setPwError]   = useState('');
+    const [showPw, setShowPw] = useState({ current: false, next: false, confirm: false });
 
     const changePassword = async (e) => {
         e.preventDefault();
@@ -250,31 +251,49 @@ const Settings = () => {
                                     <h3 className="text-sm font-black text-gray-800 mb-4">Change Password</h3>
                                     <form onSubmit={changePassword} className="space-y-4">
                                         <Field label="Current Password">
-                                            <Input
-                                                type="password"
-                                                value={pw.current}
-                                                onChange={e => setPw(p => ({ ...p, current: e.target.value }))}
-                                                required
-                                                placeholder="••••••••"
-                                            />
+                                            <div className="relative">
+                                                <Input
+                                                    type={showPw.current ? 'text' : 'password'}
+                                                    value={pw.current}
+                                                    onChange={e => setPw(p => ({ ...p, current: e.target.value }))}
+                                                    required
+                                                    placeholder="••••••••"
+                                                    className="pr-10"
+                                                />
+                                                <button type="button" onClick={() => setShowPw(s => ({ ...s, current: !s.current }))} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                                    {showPw.current ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                </button>
+                                            </div>
                                         </Field>
                                         <Field label="New Password">
-                                            <Input
-                                                type="password"
-                                                value={pw.next}
-                                                onChange={e => setPw(p => ({ ...p, next: e.target.value }))}
-                                                required
-                                                placeholder="Min 6 characters"
-                                            />
+                                            <div className="relative">
+                                                <Input
+                                                    type={showPw.next ? 'text' : 'password'}
+                                                    value={pw.next}
+                                                    onChange={e => setPw(p => ({ ...p, next: e.target.value }))}
+                                                    required
+                                                    placeholder="Min 6 characters"
+                                                    className="pr-10"
+                                                />
+                                                <button type="button" onClick={() => setShowPw(s => ({ ...s, next: !s.next }))} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                                    {showPw.next ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                </button>
+                                            </div>
                                         </Field>
                                         <Field label="Confirm New Password">
-                                            <Input
-                                                type="password"
-                                                value={pw.confirm}
-                                                onChange={e => setPw(p => ({ ...p, confirm: e.target.value }))}
-                                                required
-                                                placeholder="••••••••"
-                                            />
+                                            <div className="relative">
+                                                <Input
+                                                    type={showPw.confirm ? 'text' : 'password'}
+                                                    value={pw.confirm}
+                                                    onChange={e => setPw(p => ({ ...p, confirm: e.target.value }))}
+                                                    required
+                                                    placeholder="••••••••"
+                                                    className="pr-10"
+                                                />
+                                                <button type="button" onClick={() => setShowPw(s => ({ ...s, confirm: !s.confirm }))} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                                    {showPw.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                </button>
+                                            </div>
                                         </Field>
                                         {pwError && (
                                             <p className="text-xs text-red-500 font-medium flex items-center gap-1">

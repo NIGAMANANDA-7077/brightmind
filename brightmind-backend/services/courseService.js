@@ -14,6 +14,7 @@ class CourseService {
     // GLOBAL: return ALL courses across ALL tenants (hybrid model)
     async getAllCourses(onlyPublished = false) {
         const User = require('../models/User');
+        const Enrollment = require('../models/Enrollment');
 
         const where = onlyPublished ? { status: 'Active' } : {};
         // NO tenant filter — courses are shared/global
@@ -31,11 +32,15 @@ class CourseService {
                 }
             }
 
+            // Always compute live from Enrollments table (never trust stale counter)
+            const liveStudentCount = await Enrollment.count({ where: { courseId: course.id } });
+
             return {
                 ...course.toJSON(),
                 instructor: instructorName,
                 instructorAvatar,
                 category: course.subject,
+                studentsEnrolled: liveStudentCount,
                 // Show creator info to all admins
                 createdByAdminName: course.createdByAdminName || 'Unknown Admin',
             };
@@ -43,10 +48,20 @@ class CourseService {
     }
 
     async getCoursesByTeacher(teacherId, tenantId = null) {
+        const Enrollment = require('../models/Enrollment');
         const where = { teacherId };
         // For teacher's own courses, no tenant filter needed (teacher sees all their courses)
         const courses = await Course.findAll({ where });
-        return courses.map(c => ({ ...c.toJSON(), category: c.subject }));
+
+        // Compute live student count from Enrollments table (never trust stale counter)
+        return await Promise.all(courses.map(async (course) => {
+            const liveStudentCount = await Enrollment.count({ where: { courseId: course.id } });
+            return {
+                ...course.toJSON(),
+                category: course.subject,
+                studentsEnrolled: liveStudentCount,
+            };
+        }));
     }
 
     async getCoursesByStudent(studentId) {
@@ -97,11 +112,16 @@ class CourseService {
             }
         }
 
+        // Always compute live from Enrollments table (never trust stale counter)
+        const Enrollment = require('../models/Enrollment');
+        const liveStudentCount = await Enrollment.count({ where: { courseId: id } });
+
         return {
             ...course.toJSON(),
             instructor: instructorName,
             instructorAvatar,
             category: course.subject,
+            studentsEnrolled: liveStudentCount,
             createdByAdminName: course.createdByAdminName || 'Unknown Admin',
         };
     }

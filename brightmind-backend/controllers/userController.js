@@ -3,6 +3,19 @@ const Setting = require('../models/Setting');
 const logAdminActivity = require('../utils/logAdminActivity');
 
 const userController = {
+    // Public endpoint for fetching teachers
+    getPublicTeachers: async (req, res) => {
+        try {
+            const teachers = await User.findAll({
+                where: { role: 'Teacher', status: 'Active' },
+                attributes: ['id', 'name', 'avatar', 'subject', 'bio', 'qualification', 'experience', 'department', 'linkedinUrl', 'twitterUrl', 'facebookUrl'],
+            });
+            return res.json({ success: true, count: teachers.length, data: teachers });
+        } catch (err) {
+            return res.status(500).json({ success: false, message: err.message });
+        }
+    },
+
     // Persisted theme preference for any authenticated user
     getThemePreference: async (req, res) => {
         try {
@@ -50,6 +63,7 @@ const userController = {
         try {
             const Batch   = require('../models/Batch');
             const Course  = require('../models/Course');
+            const Enrollment = require('../models/Enrollment');
 
             // Always filter by tenantId for non-SuperAdmin — even if tenantId is null
             // (null-tenantId admin sees only null-tenantId users, NOT all users)
@@ -83,6 +97,16 @@ const userController = {
                         as: 'taughtCourses',
                         attributes: ['id', 'title'],
                         required: false
+                    },
+                    // Courses enrolled (for Student column)
+                    {
+                        model: Enrollment,
+                        as: 'enrollments',
+                        attributes: ['id'],
+                        include: [
+                            { model: Course, as: 'course', attributes: ['title'] }
+                        ],
+                        required: false
                     }
                 ],
                 order: [['createdAt', 'DESC']]
@@ -103,7 +127,7 @@ const userController = {
                     // courses shown in Enrolled Courses column
                     courses: json.role === 'Teacher'
                         ? (json.taughtCourses || []).map(c => c.title)
-                        : []
+                        : (json.enrollments || []).map(e => e.course?.title).filter(Boolean)
                 };
             });
 
@@ -239,6 +263,21 @@ const userController = {
             if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
             const { password, tenantId: _t, ...updateData } = req.body; // strip tenantId from update
+            
+            if (updateData.name && updateData.name.trim().length > 50) {
+                return res.status(400).json({ success: false, message: 'Name cannot exceed 50 characters' });
+            }
+
+            if (updateData.email) {
+                if (updateData.email.trim().length > 100) {
+                    return res.status(400).json({ success: false, message: 'Email cannot exceed 100 characters' });
+                }
+                if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(updateData.email.trim())) {
+                    return res.status(400).json({ success: false, message: 'Please provide a valid email format (e.g., example@gmail.com)' });
+                }
+                updateData.email = updateData.email.trim().toLowerCase();
+            }
+
             const userName = user.name;
             await user.update(updateData);
 
@@ -493,15 +532,20 @@ const userController = {
                 courseIds, batchId, batchIds, enrollmentDate,
                 // Teacher-specific
                 expertise, bio, qualification, experience, department, teacherCourseIds,
+                linkedinUrl, twitterUrl, facebookUrl,
             } = req.body;
 
             // ── Required-field validation ──────────────────────────────────
             if (!name || !name.trim())
                 return res.status(400).json({ success: false, message: 'Full name is required' });
+            if (name.trim().length > 50)
+                return res.status(400).json({ success: false, message: 'Name cannot exceed 50 characters' });
             if (!email || !email.trim())
                 return res.status(400).json({ success: false, message: 'Email address is required' });
-            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
-                return res.status(400).json({ success: false, message: 'Invalid email format' });
+            if (email.trim().length > 100)
+                return res.status(400).json({ success: false, message: 'Email cannot exceed 100 characters' });
+            if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.trim()))
+                return res.status(400).json({ success: false, message: 'Please provide a valid email format (e.g., example@gmail.com)' });
             if (!password)
                 return res.status(400).json({ success: false, message: 'Password is required' });
             if (!['Student', 'Teacher'].includes(role))
@@ -538,6 +582,9 @@ const userController = {
                 userData.qualification = qualification || null;
                 userData.experience    = experience    || null;
                 userData.department    = department    || null;
+                userData.linkedinUrl   = linkedinUrl   || null;
+                userData.twitterUrl    = twitterUrl    || null;
+                userData.facebookUrl   = facebookUrl   || null;
             }
 
             // ── Auto-generate unique Student ID (STU1001, STU1002, ...) ───
@@ -568,15 +615,18 @@ const userController = {
             if (role === 'Student' && Array.isArray(courseIds) && courseIds.length > 0) {
                 const enrolledAt = enrollmentDate ? new Date(enrollmentDate) : new Date();
                 await Promise.all(
-                    courseIds.map(courseId =>
-                        Enrollment.create({
+                    courseIds.map(async (courseId) => {
+                        await Enrollment.create({
                             studentId: user.id,
                             courseId,
                             batchId:    primaryBatchId || null,
                             enrolledAt,
                             status: 'Active',
-                        })
-                    )
+                        });
+                        // Keep counter in sync
+                        const enrolledCourse = await Course.findByPk(courseId);
+                        if (enrolledCourse) await enrolledCourse.increment('studentsEnrolled');
+                    })
                 );
                 const enrolledCourses = await Course.findAll({
                     where: { id: courseIds },

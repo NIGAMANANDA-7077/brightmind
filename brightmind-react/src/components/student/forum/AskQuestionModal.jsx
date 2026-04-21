@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, MessageSquare, Loader } from 'lucide-react';
+import { X, MessageSquare, Loader, AlertCircle } from 'lucide-react';
 import api from '../../../utils/axiosConfig';
 
 const AskQuestionModal = ({ isOpen, onClose, onSubmit }) => {
@@ -7,6 +7,9 @@ const AskQuestionModal = ({ isOpen, onClose, onSubmit }) => {
     const [description, setDescription] = useState('');
     const [tagInput, setTagInput] = useState('');
     const [tags, setTags] = useState([]);
+    const [errors, setErrors] = useState({});
+    const [submitting, setSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState('');
 
     // Multi-batch state
     const [myBatches, setMyBatches] = useState([]);
@@ -49,25 +52,45 @@ const AskQuestionModal = ({ isOpen, onClose, onSubmit }) => {
         setTags(tags.filter(tag => tag !== tagToRemove));
     };
 
-    const handleSubmit = (e) => {
+    const validate = () => {
+        const newErrors = {};
+        if (!title.trim()) newErrors.title = 'Title is required.';
+        if (!description.trim()) newErrors.description = 'Description is required.';
+        return newErrors;
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        const selectedBatch = myBatches.find(b => b.id === batchId);
-
-        onSubmit({
-            title,
-            description,
-            batchId: batchId || undefined,
-            batchName: selectedBatch ? selectedBatch.batchName : undefined,
-            tags
-        });
-
-        // Reset and close
-        setTitle('');
-        setDescription('');
-        setBatchId(myBatches.length === 1 ? myBatches[0].id : '');
-        setTags([]);
-        setTagInput('');
-        onClose();
+        setSubmitError('');
+        const validationErrors = validate();
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors);
+            return;
+        }
+        setErrors({});
+        setSubmitting(true);
+        try {
+            const selectedBatch = myBatches.find(b => b.id === batchId);
+            await onSubmit({
+                title: title.trim(),
+                description: description.trim(),
+                batchId: batchId || undefined,
+                batchName: selectedBatch ? selectedBatch.batchName : undefined,
+                tags
+            });
+            // Reset and close only on success
+            setTitle('');
+            setDescription('');
+            setBatchId(myBatches.length === 1 ? myBatches[0].id : '');
+            setTags([]);
+            setTagInput('');
+            setErrors({});
+            onClose();
+        } catch (err) {
+            setSubmitError(err?.response?.data?.message || 'Failed to post question. Please try again.');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const isMultiBatch = myBatches.length > 1;
@@ -125,15 +148,21 @@ const AskQuestionModal = ({ isOpen, onClose, onSubmit }) => {
 
                     {/* Title */}
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Title</label>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                            Title <span className="text-red-500">*</span>
+                        </label>
                         <input
                             type="text"
                             value={title}
-                            onChange={(e) => setTitle(e.target.value)}
+                            onChange={(e) => { setTitle(e.target.value); if (errors.title) setErrors(p => ({ ...p, title: '' })); }}
                             placeholder="e.g., How to implement dark mode in React?"
-                            required
-                            className="w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 focus:border-[#8b5cf6] font-bold text-gray-900 placeholder:font-normal"
+                            className={`w-full p-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 focus:border-[#8b5cf6] font-bold text-gray-900 placeholder:font-normal transition-colors ${errors.title ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                         />
+                        {errors.title && (
+                            <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1">
+                                <AlertCircle size={12} /> {errors.title}
+                            </p>
+                        )}
                     </div>
 
                     {/* Tags */}
@@ -161,31 +190,45 @@ const AskQuestionModal = ({ isOpen, onClose, onSubmit }) => {
 
                     {/* Description */}
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Description</label>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                            Description <span className="text-red-500">*</span>
+                        </label>
                         <textarea
                             value={description}
-                            onChange={(e) => setDescription(e.target.value)}
+                            onChange={(e) => { setDescription(e.target.value); if (errors.description) setErrors(p => ({ ...p, description: '' })); }}
                             placeholder="Describe your issue in detail..."
-                            required
                             rows={6}
-                            className="w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 focus:border-[#8b5cf6] resize-none"
+                            className={`w-full p-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 focus:border-[#8b5cf6] resize-none transition-colors ${errors.description ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                         />
+                        {errors.description && (
+                            <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1">
+                                <AlertCircle size={12} /> {errors.description}
+                            </p>
+                        )}
                     </div>
+
+                    {submitError && (
+                        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+                            <AlertCircle size={16} />
+                            {submitError}
+                        </div>
+                    )}
 
                     <div className="pt-4 flex justify-end gap-3">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition-colors"
+                            disabled={submitting}
+                            className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
-                            disabled={isMultiBatch && !batchId}
-                            className="px-6 py-3 rounded-xl bg-[#8b5cf6] text-white font-bold hover:bg-[#7c3aed] shadow-lg shadow-purple-500/20 transition-all active:scale-95 disabled:opacity-50"
+                            disabled={(isMultiBatch && !batchId) || submitting}
+                            className="px-6 py-3 rounded-xl bg-[#8b5cf6] text-white font-bold hover:bg-[#7c3aed] shadow-lg shadow-purple-500/20 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
                         >
-                            Post Question
+                            {submitting ? <><Loader size={16} className="animate-spin" /> Posting...</> : 'Post Question'}
                         </button>
                     </div>
                 </form>

@@ -20,11 +20,13 @@ const PublicCourseCard = ({ course }) => {
                     </span>
 
                     <div className="absolute bottom-4 left-4 right-4 text-white">
-                        <div className="flex items-center gap-1.5 mb-1">
-                            <Star size={14} className="text-yellow-400 fill-yellow-400" />
-                            <span className="text-sm font-bold">{course.rating}</span>
-                            <span className="text-xs text-white/80">({course.reviewsCount} reviews)</span>
-                        </div>
+                        {course.reviewsCount > 0 && (
+                            <div className="flex items-center gap-1.5 mb-1">
+                                <Star size={14} className="text-yellow-400 fill-yellow-400" />
+                                <span className="text-sm font-bold">{course.rating}</span>
+                                <span className="text-xs text-white/80">({course.reviewsCount} reviews)</span>
+                            </div>
+                        )}
                     </div>
                 </div>
 

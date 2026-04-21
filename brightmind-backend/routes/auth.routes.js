@@ -19,4 +19,12 @@ router.post('/student-login', authController.studentLogin);
 // @desc    Get current logged in user
 router.get('/me', protect, authController.getMe);
 
+// @route   POST /api/auth/forgot-password
+// @desc    Send password reset email
+router.post('/forgot-password', authController.forgotPassword);
+
+// @route   POST /api/auth/reset-password/:token
+// @desc    Reset password using token
+router.post('/reset-password/:token', authController.resetPassword);
+
 module.exports = router;

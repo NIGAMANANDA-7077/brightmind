@@ -3,6 +3,9 @@ const router = express.Router();
 const userController = require('../controllers/userController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 
+// ─── Public routes ────────────────────────────────────────────────────────
+router.get('/public/teachers', userController.getPublicTeachers);
+
 // ─── Admin: Create Student / Teacher (protected) ──────────────────────────
 router.post('/admin/create', protect, authorize('Admin'), userController.adminCreateUser);
 

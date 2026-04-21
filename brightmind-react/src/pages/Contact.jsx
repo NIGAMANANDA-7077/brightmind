@@ -12,8 +12,8 @@ const Contact = () => {
         {
             icon: Mail,
             title: 'Email us',
-            description: 'Email us for general queries, including marketing and partnership opportunities.',
-            contactInfo: 'hello@brightmind.com',
+            description: 'Email us for course inquiries, technical support, or any academic assistance.',
+            contactInfo: 'nigamcut@gmail.com',
             colorClass: 'bg-[#eef2ff]' // Light Indigo
         },
         {
@@ -27,7 +27,7 @@ const Contact = () => {
             icon: Phone,
             title: 'Contact us',
             description: 'Mon-Fri from 8am to 5pm.',
-            contactInfo: '+91 1234567890',
+            contactInfo: '+91 7077629919',
             colorClass: 'bg-[#fff7ed]' // Light Orange
         }
     ];

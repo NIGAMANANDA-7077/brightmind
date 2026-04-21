@@ -24,6 +24,11 @@ exports.getAllThreads = async (req, res) => {
             });
             const studentBatchIds = studentBatchRows.map(r => r.batchId);
 
+            const studentUser = await User.findByPk(req.user.id, { attributes: ['id', 'batchId'] });
+            if (studentUser?.batchId && !studentBatchIds.includes(studentUser.batchId)) {
+                studentBatchIds.push(studentUser.batchId);
+            }
+
             if (studentBatchIds.length > 0) {
                 where.batchId = { [Op.in]: studentBatchIds };
             } else {
@@ -155,7 +160,14 @@ exports.getThreadById = async (req, res) => {
 exports.createThread = async (req, res) => {
     try {
         const { title, description, courseId, batchId } = req.body;
-        
+
+        // Validate mandatory fields
+        if (!title || !title.trim()) {
+            return res.status(400).json({ message: 'Title is required.' });
+        }
+        if (!description || !description.trim()) {
+            return res.status(400).json({ message: 'Description is required.' });
+        }
         let actualBatchId = batchId || null;
         if (req.user.role === 'Student') {
             if (actualBatchId) {

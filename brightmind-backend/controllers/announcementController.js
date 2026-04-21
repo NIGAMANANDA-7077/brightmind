@@ -69,7 +69,8 @@ exports.getAllAnnouncements = async (req, res, next) => {
                 where = {
                     [Op.or]: [
                         ...(batchIds.length > 0 ? [{ batchId: { [Op.in]: batchIds } }] : []),
-                        { batchId: null, audience: { [Op.in]: ['All', 'Teachers'] } }
+                        { batchId: null, audience: { [Op.in]: ['All', 'Teachers'] } },
+                        { postedBy: req.user.name || req.user.id }
                     ]
                 };
             }
@@ -105,32 +106,49 @@ exports.createAnnouncement = async (req, res, next) => {
             if (teacherBatches.length === 0) {
                 return res.status(400).json({ message: 'No batches assigned to you' });
             }
-            // Create one announcement to represent "all batches" (no batchId)
-            const announcement = await Announcement.create({
-                title,
-                message,
-                audience: 'Students',
-                batchId: null,
-                date: date || null,
-                status: status || 'Published',
-                postedBy: req.user?.name || req.user?.id,
-                tenantId: req.user?.tenantId || null
-            });
-            // Notify all students across all teacher batches (exclude teacher/sender)
+            // Create one announcement PER batch
+            const newAnnouncements = [];
             const allStudentIds = new Set();
             for (const batch of teacherBatches) {
+                const item = await Announcement.create({
+                    title,
+                    message,
+                    audience: 'Students',
+                    batchId: batch.id,
+                    date: date || null,
+                    status: status || 'Published',
+                    postedBy: req.user?.name || req.user?.id,
+                    tenantId: req.user?.tenantId || null
+                });
+                newAnnouncements.push(item);
                 const ids = await getStudentIdsForBatch(batch.id);
-                ids.forEach(id => allStudentIds.add(id));
+                ids.forEach(id => {
+                    allStudentIds.add({ studentId: id, batchId: batch.id });
+                });
             }
+            
             const senderName = req.user?.name || 'Your Teacher';
             const notifBase = {
                 title: `📢 ${title}`,
                 message: `From ${senderName}: ${(message || '').substring(0, 180)}`,
-                type: 'announcement', referenceId: announcement.id,
+                type: 'announcement',
                 link: '/student/announcements', read: false
             };
-            await createUserNotifications([...allStudentIds], { ...notifBase, role: 'Student' }, req.user.id);
-            const result = await Announcement.findByPk(announcement.id, {
+            
+            // Notify students (for 'all batches', they might be in multiple batches)
+            const createdNotifications = [];
+            for (const { studentId, batchId } of allStudentIds) {
+                if (studentId === req.user.id) continue;
+                createdNotifications.push({ ...notifBase, batchId, role: 'Student', referenceId: newAnnouncements.find(a => a.batchId === batchId)?.id, userId: studentId });
+            }
+            if (createdNotifications.length > 0) {
+                await Notification.bulkCreate(createdNotifications, { ignoreDuplicates: true });
+            }
+
+            // Return the first one or just a success message (Frontend expects one announcement object to add to state, maybe return an array or just the first)
+            // But if frontend expects an array to replace state, it would be difficult.
+            // Wait, front-end only appends ONE. The easiest way is to return the first one with its batch data so it doesn't crash.
+            const result = await Announcement.findByPk(newAnnouncements[0].id, {
                 include: [{ model: Batch, as: 'batch', attributes: ['id', 'batchName'] }]
             });
             return res.status(201).json(result);

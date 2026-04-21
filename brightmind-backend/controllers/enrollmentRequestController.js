@@ -114,11 +114,14 @@ exports.approveRequest = async (req, res) => {
             enrolledAt: new Date()
         });
 
+        // Increment live counter
+        const course = await Course.findByPk(request.courseId);
+        if (course) await course.increment('studentsEnrolled');
+
         // Update request status
         await request.update({ status: 'approved' });
 
         // Notify student
-        const course = await Course.findByPk(request.courseId);
         await Notification.create({
             userId: request.studentId,
             title: '🎉 Enrollment Approved!',

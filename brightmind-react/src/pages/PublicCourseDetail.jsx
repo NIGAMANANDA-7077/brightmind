@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
     Star, Clock, Users, BookOpen, CheckCircle,
-    MonitorPlay, ShieldCheck, Heart, Share2,
+    MonitorPlay, ShieldCheck, X,
     ChevronDown, ChevronUp, Lock, PlayCircle, Globe, Award
 } from 'lucide-react';
 import { useUser } from '../context/UserContext';
@@ -11,13 +11,15 @@ const DEFAULT_THUMBNAIL = 'https://images.unsplash.com/photo-1516321318423-f06f8
 
 // Normalise backend course to the shape this component expects
 function normalise(c) {
-    const modules = (c.courseModules || []).map(m => ({
+    const hasPreview = !!c.youtubeUrl;
+    const modules = (c.courseModules || []).map((m, mi) => ({
         title: m.moduleTitle || m.title || 'Module',
         duration: '',
-        lessons: (m.lessons || []).map(l => ({
+        lessons: (m.lessons || []).map((l, li) => ({
             title: l.lessonTitle || l.title || 'Lesson',
             duration: l.duration || '',
-            isFree: false,
+            // First lesson of first module is preview if course has a youtubeUrl
+            isFree: hasPreview && mi === 0 && li === 0,
         })),
     }));
 
@@ -27,7 +29,7 @@ function normalise(c) {
             title: 'Introduction',
             duration: c.duration || 'Self-paced',
             lessons: [
-                { title: 'Course Overview', duration: '10:00', isFree: true },
+                { title: 'Course Overview', duration: '10:00', isFree: hasPreview },
                 { title: 'Getting Started', duration: '15:00', isFree: false },
             ],
         });
@@ -41,16 +43,17 @@ function normalise(c) {
         category: c.subject || c.category || 'General',
         level: c.level || 'All Levels',
         thumbnail: c.thumbnail || DEFAULT_THUMBNAIL,
-        rating: c.rating || 4.5,
-        reviewsCount: c.reviewsCount || 0,
+        youtubeUrl: c.youtubeUrl || null,
+        rating: null,          // never show hardcoded rating
+        reviewsCount: 0,
         enrolled: c.studentsEnrolled || 0,
         price: Number(c.price) || 0,
         duration: c.duration || 'Self-paced',
         instructor: {
-            name: c.createdByAdminName || c.instructor || 'Admin',
-            avatar: c.instructorAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.createdByAdminName || 'Admin')}&background=random&size=128`,
+            name: c.instructor || c.createdByAdminName || 'Instructor',
+            avatar: c.instructorAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.instructor || c.createdByAdminName || 'Instructor')}&background=8b5cf6&color=fff&size=128`,
             role: 'Expert Instructor',
-            bio: `${c.createdByAdminName || 'Admin'} is an experienced instructor dedicated to delivering quality education.`,
+            bio: `${c.instructor || c.createdByAdminName || 'Instructor'} is an experienced instructor dedicated to delivering quality education.`,
             students: c.studentsEnrolled || 0,
             courses: 1,
         },
@@ -74,13 +77,17 @@ const PublicCourseDetail = () => {
 
     const [course, setCourse] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [reviews, setReviews] = useState([]);
+    const [reviewStats, setReviewStats] = useState({ averageRating: 0, totalRatings: 0 });
+    const [previewOpen, setPreviewOpen] = useState(false);
+
+    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
     useEffect(() => {
         window.scrollTo(0, 0);
         const fetchCourse = async () => {
             try {
-                // Try single course endpoint first
-                const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/courses/public/${courseId}`);
+                const res = await fetch(`${API_BASE}/courses/public/${courseId}`);
                 if (res.ok) {
                     const data = await res.json();
                     setCourse(data ? normalise(data) : null);
@@ -93,7 +100,24 @@ const PublicCourseDetail = () => {
                 setLoading(false);
             }
         };
+
+        const fetchReviews = async () => {
+            try {
+                const res = await fetch(`${API_BASE}/reviews/course/${courseId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success) {
+                        setReviews(data.data || []);
+                        setReviewStats(data.stats || { averageRating: 0, totalRatings: 0 });
+                    }
+                }
+            } catch {
+                // silently fail — reviews are optional
+            }
+        };
+
         fetchCourse();
+        fetchReviews();
     }, [courseId]);
 
     if (loading) {
@@ -118,11 +142,7 @@ const PublicCourseDetail = () => {
 
     const isLoggedIn = !!user;
     const handleEnroll = () => {
-        if (!isLoggedIn) {
-            navigate('/login');
-        } else {
-            alert("Enrollment successful!");
-        }
+        navigate('/contact');
     };
 
     return (
@@ -151,39 +171,52 @@ const PublicCourseDetail = () => {
                         </p>
 
                         <div className="flex flex-wrap items-center gap-8 text-sm font-medium text-gray-300">
-                            <div className="flex items-center gap-2">
-                                <div className="flex text-yellow-500">
-                                    {[...Array(5)].map((_, i) => (
-                                        <Star key={i} size={18} fill={i < Math.floor(course.rating) ? "currentColor" : "none"} className={i >= Math.floor(course.rating) ? "text-gray-600" : ""} />
-                                    ))}
+                            {reviewStats.totalRatings > 0 && (
+                                <div className="flex items-center gap-2">
+                                    <div className="flex text-yellow-500">
+                                        {[...Array(5)].map((_, i) => (
+                                            <Star key={i} size={16} fill={i < Math.floor(reviewStats.averageRating) ? "currentColor" : "none"} className={i >= Math.floor(reviewStats.averageRating) ? "text-gray-600" : ""} />
+                                        ))}
+                                    </div>
+                                    <span className="text-white font-bold">{reviewStats.averageRating}</span>
+                                    <span className="text-gray-500">({reviewStats.totalRatings} reviews)</span>
                                 </div>
-                                <span className="text-white font-bold">{course.rating}</span>
-                                <span className="text-gray-500">({course.reviewsCount} reviews)</span>
-                            </div>
+                            )}
                             <div className="flex items-center gap-2">
-                                <Users size={18} className="text-[#8b5cf6]" />
+                                <Users size={16} className="text-[#8b5cf6]" />
                                 <span>{course.enrolled.toLocaleString()} Students Enrolled</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <Clock size={18} className="text-[#8b5cf6]" />
-                                <span>Updated Last month</span>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-3 mt-8 pt-8 border-t border-gray-800 w-max">
-                            <img
-                                src={course.instructor.avatar}
-                                alt={course.instructor.name}
-                                className="w-12 h-12 rounded-full border-2 border-[#8b5cf6]"
-                            />
-                            <div>
-                                <p className="text-gray-400 text-xs uppercase tracking-wider font-bold">Created by</p>
-                                <p className="text-white font-bold text-lg">{course.instructor.name}</p>
+                                <Clock size={16} className="text-[#8b5cf6]" />
+                                <span>Duration: {course.duration}</span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* Preview Video Modal */}
+            {previewOpen && course.youtubeUrl && (
+                <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setPreviewOpen(false)}>
+                    <div className="relative w-full max-w-3xl bg-black rounded-2xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+                        <button
+                            onClick={() => setPreviewOpen(false)}
+                            className="absolute top-3 right-3 z-10 w-8 h-8 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors"
+                        >
+                            <X size={18} />
+                        </button>
+                        <div className="aspect-video">
+                            <iframe
+                                src={course.youtubeUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'www.youtube.com/embed/')}
+                                className="w-full h-full"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                title="Course Preview"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="container-custom relative z-20">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 -mt-10 md:-mt-20">
@@ -256,28 +289,57 @@ const PublicCourseDetail = () => {
 
                         {/* Reviews */}
                         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-                            <h3 className="text-2xl font-bold text-gray-900 mb-6">Student Reviews</h3>
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-2xl font-bold text-gray-900">Student Reviews</h3>
+                                {reviewStats.totalRatings > 0 && (
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-3xl font-black text-gray-900">{reviewStats.averageRating}</span>
+                                        <div className="flex flex-col">
+                                            <div className="flex text-yellow-500">
+                                                {[...Array(5)].map((_, i) => (
+                                                    <Star key={i} size={14} fill={i < Math.round(reviewStats.averageRating) ? "currentColor" : "none"} className={i >= Math.round(reviewStats.averageRating) ? "text-gray-300" : ""} />
+                                                ))}
+                                            </div>
+                                            <span className="text-xs text-gray-400 font-medium">{reviewStats.totalRatings} ratings</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                             <div className="grid gap-6">
-                                {course.reviews.length > 0 ? (
-                                    course.reviews.map(review => (
+                                {reviews.length > 0 ? (
+                                    reviews.map(review => (
                                         <div key={review.id} className="p-6 bg-gray-50 rounded-2xl">
                                             <div className="flex items-center gap-4 mb-4">
-                                                <img src={review.avatar} alt={review.user} className="w-10 h-10 rounded-full" />
+                                                <img
+                                                    src={review.student?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(review.student?.name || 'Student')}&background=8b5cf6&color=fff&size=64`}
+                                                    alt={review.student?.name || 'Student'}
+                                                    className="w-10 h-10 rounded-full object-cover"
+                                                />
                                                 <div>
-                                                    <p className="font-bold text-gray-900">{review.user}</p>
-                                                    <div className="flex text-yellow-500 text-xs">
-                                                        {[...Array(5)].map((_, i) => (
-                                                            <Star key={i} size={12} fill={i < review.rating ? "currentColor" : "none"} className={i >= review.rating ? "text-gray-300" : ""} />
-                                                        ))}
-                                                        <span className="text-gray-400 ml-2">{review.date}</span>
+                                                    <p className="font-bold text-gray-900">{review.student?.name || 'Student'}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="flex text-yellow-500">
+                                                            {[...Array(5)].map((_, i) => (
+                                                                <Star key={i} size={12} fill={i < review.rating ? "currentColor" : "none"} className={i >= review.rating ? "text-gray-300" : ""} />
+                                                            ))}
+                                                        </div>
+                                                        <span className="text-gray-400 text-xs">
+                                                            {new Date(review.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <p className="text-gray-600 italic">"{review.comment}"</p>
+                                            {review.comment && (
+                                                <p className="text-gray-600 italic">"{review.comment}"</p>
+                                            )}
                                         </div>
                                     ))
                                 ) : (
-                                    <p className="text-gray-500 italic">No reviews yet.</p>
+                                    <div className="text-center py-10">
+                                        <Star size={40} className="text-gray-200 mx-auto mb-3" />
+                                        <p className="text-gray-500 font-medium">No reviews yet.</p>
+                                        <p className="text-gray-400 text-sm">Be the first to review this course!</p>
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -303,13 +365,9 @@ const PublicCourseDetail = () => {
 
                                 <button
                                     onClick={handleEnroll}
-                                    className="w-full py-4 bg-[#8b5cf6] text-white rounded-xl font-bold text-lg hover:bg-[#7c3aed] transition-all shadow-lg shadow-purple-500/20 active:scale-95 mb-4"
+                                    className="w-full py-4 bg-[#8b5cf6] text-white rounded-xl font-bold text-lg hover:bg-[#7c3aed] transition-all shadow-lg shadow-purple-500/20 active:scale-95 mb-6"
                                 >
                                     Enroll Now
-                                </button>
-
-                                <button className="w-full py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2 mb-6">
-                                    <Heart size={18} /> Add to Wishlist
                                 </button>
 
                                 <div className="space-y-4 pt-6 border-t border-gray-100">
@@ -323,10 +381,7 @@ const PublicCourseDetail = () => {
                                             <ShieldCheck size={18} className="text-[#8b5cf6]" />
                                             <span>Certificate of completion</span>
                                         </div>
-                                        <div className="flex items-center gap-3 text-sm text-gray-600">
-                                            <BookOpen size={18} className="text-[#8b5cf6]" />
-                                            <span>Access on mobile and TV</span>
-                                        </div>
+            
                                         <div className="flex items-center gap-3 text-sm text-gray-600">
                                             <Award size={18} className="text-[#8b5cf6]" />
                                             <span>Assignments & Quizzes</span>
@@ -334,11 +389,7 @@ const PublicCourseDetail = () => {
                                     </div>
                                 </div>
 
-                                <div className="mt-6 pt-6 border-t border-gray-100 text-center">
-                                    <button className="text-gray-500 text-sm font-bold flex items-center justify-center gap-2 mx-auto hover:text-gray-900">
-                                        <Share2 size={16} /> Share this course
-                                    </button>
-                                </div>
+
                             </div>
                         </div>
                     </div>
@@ -372,9 +423,13 @@ const ViewModule = ({ module, idx }) => {
             {isOpen && (
                 <div className="divide-y divide-gray-100 bg-white">
                     {module.lessons.map((lesson, i) => (
-                        <div key={i} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors group cursor-pointer">
+                        <div
+                            key={i}
+                            onClick={() => { if (lesson.isFree && course.youtubeUrl) setPreviewOpen(true); }}
+                            className={`p-4 flex items-center justify-between hover:bg-gray-50 transition-colors group ${lesson.isFree && course.youtubeUrl ? 'cursor-pointer' : 'cursor-default'}`}
+                        >
                             <div className="flex items-center gap-3">
-                                <PlayCircle size={16} className={`text-gray-400 group-hover:text-[#8b5cf6] transition-colors`} />
+                                <PlayCircle size={16} className={`transition-colors ${lesson.isFree ? 'text-[#8b5cf6]' : 'text-gray-400 group-hover:text-[#8b5cf6]'}`} />
                                 <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{lesson.title}</span>
                             </div>
                             <div className="flex items-center gap-4">

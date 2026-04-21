@@ -28,7 +28,8 @@ export const ForumProvider = ({ children }) => {
     const addThread = async (newThreadData) => {
         try {
             const res = await api.post('/forum', newThreadData);
-            setThreads([res.data, ...threads]);
+            // Re-fetch threads so the list has full joined data (author, batch, courseName, etc.)
+            await fetchThreads();
             return res.data;
         } catch (err) {
             console.error("Failed to add thread:", err);

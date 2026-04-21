@@ -1,18 +1,55 @@
-import React from 'react';
-import { useParams, Navigate } from 'react-router-dom';
-import { blogPosts } from '../data/blog';
-import { Star, Clock, Calendar, Facebook, Twitter, Linkedin, Share2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useParams, Navigate, Link } from 'react-router-dom';
+import { Star, Clock, Calendar, Facebook, Twitter, Linkedin, Share2, Loader2, ArrowLeft } from 'lucide-react';
 import RelatedPosts from '../components/RelatedPosts';
 import CTASection from '../components/CTASection';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
+import api from '../utils/axiosConfig';
 
 const BlogDetail = () => {
     const { slug } = useParams();
-    const post = blogPosts.find(p => p.slug === slug);
-    const [contentRef, contentVisible] = useScrollAnimation({ threshold: 0.05, once: true });
+    const [contentRef, contentVisible] = useScrollAnimation({ threshold: 0.01, once: true, rootMargin: '100px' });
+    
+    const [post, setPost] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
 
-    if (!post) {
-        return <Navigate to="/blog" replace />;
+    useEffect(() => {
+        const fetchPost = async () => {
+            try {
+                setLoading(true);
+                const { data } = await api.get(`/blogs/${slug}`);
+                if (data.success) {
+                    setPost(data.data);
+                } else {
+                    setError(true);
+                }
+            } catch (err) {
+                console.error(err);
+                setError(true);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchPost();
+        // scroll to top on new post
+        window.scrollTo(0, 0);
+    }, [slug]);
+
+    if (loading) {
+        return <div className="pt-32 pb-20 flex justify-center"><Loader2 className="animate-spin text-[#8b5cf6]" size={40} /></div>;
+    }
+
+    if (error || !post) {
+        return (
+            <div className="pt-32 pb-20 text-center container-custom">
+                <h1 className="text-3xl font-bold text-gray-900 mb-4">Blog Post Not Found</h1>
+                <p className="text-gray-500 mb-8">The post you're looking for doesn't exist or has been removed.</p>
+                <Link to="/blog" className="inline-flex items-center gap-2 bg-[#8b5cf6] text-white px-6 py-3 rounded-full font-bold">
+                    <ArrowLeft size={18} /> Back to Blog
+                </Link>
+            </div>
+        );
     }
 
     return (
@@ -33,33 +70,37 @@ const BlogDetail = () => {
                     </div>
                     <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
-                        {post.date}
+                        {new Date(post.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </div>
                     <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4" />
-                        {post.readTime}
+                        {post.readTime || '5 Min Read'}
                     </div>
                     <div className="flex items-center gap-2 pl-2 border-l border-gray-200">
-                        <img
-                            src={post.author.avatar}
-                            alt={post.author.name}
-                            className="w-8 h-8 rounded-full object-cover"
-                        />
-                        <span className="text-gray-900">{post.author.name}</span>
+                        {post.authorAvatar && (
+                            <img
+                                src={post.authorAvatar}
+                                alt={post.authorName}
+                                className="w-8 h-8 rounded-full object-cover"
+                            />
+                        )}
+                        <span className="text-gray-900">{post.authorName || 'BrightMind Expert'}</span>
                     </div>
                 </div>
             </div>
 
             {/* Hero Image */}
-            <div className="container-custom mb-16 px-4 md:px-0">
-                <div className="rounded-[2.5rem] overflow-hidden shadow-2xl h-[400px] md:h-[600px]">
-                    <img
-                        src={post.image}
-                        alt={post.title}
-                        className="w-full h-full object-cover"
-                    />
+            {post.image && (
+                <div className="container-custom mb-16 px-4 md:px-0">
+                    <div className="rounded-[2.5rem] overflow-hidden shadow-2xl h-[400px] md:h-[600px]">
+                        <img
+                            src={post.image}
+                            alt={post.title}
+                            className="w-full h-full object-cover"
+                        />
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Content Layout */}
             <div className="container-custom max-w-6xl mx-auto mb-20">
@@ -70,6 +111,11 @@ const BlogDetail = () => {
                         ref={contentRef}
                         className={`lg:col-span-8 transition-all duration-1000 ${contentVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
                     >
+                        {post.excerpt && (
+                            <p className="text-xl text-gray-500 italic border-l-4 border-purple-200 pl-4 mb-8">
+                                {post.excerpt}
+                            </p>
+                        )}
                         <div
                             className="prose prose-lg prose-purple max-w-none text-gray-600 leading-relaxed"
                             dangerouslySetInnerHTML={{ __html: post.content }}
@@ -100,7 +146,7 @@ const BlogDetail = () => {
                 </div>
             </div>
 
-            <RelatedPosts currentId={post.id} />
+            <RelatedPosts currentSlug={post.slug} currentCategory={post.category} />
             <CTASection />
         </div>
     );

@@ -130,19 +130,22 @@ const seedData = async () => {
         // 4. Seed Questions
         const questions = await QuestionBank.bulkCreate([
             {
-                text: 'What is the SI unit of Force?',
+                questionText: 'What is the SI unit of Force?',
                 topic: 'Physics',
-                type: 'Multiple Choice',
-                options: ['Newton', 'Joule', 'Pascal', 'Watt'],
-                correctAnswer: 'Newton',
-                difficulty: 'Easy'
+                questionType: 'MCQ',
+                courseId: courses[0].id,
+                teacherId: users[1].id,
+                difficulty: 'Easy',
+                marks: 1
             },
             {
-                text: 'The value of Acceleration due to gravity (g) is approximately 9.8 m/s².',
+                questionText: 'The value of Acceleration due to gravity (g) is approximately 9.8 m/s².',
                 topic: 'Physics',
-                type: 'True/False',
-                correctAnswer: 'True',
-                difficulty: 'Medium'
+                questionType: 'True False',
+                courseId: courses[0].id,
+                teacherId: users[1].id,
+                difficulty: 'Medium',
+                marks: 1
             }
         ]);
         console.log(`✅ Seeded ${questions.length} questions`);
@@ -151,12 +154,10 @@ const seedData = async () => {
         await Exam.create({
             title: 'Monthly Development Assessment',
             courseId: courses[0].id,
-            courseName: courses[0].title,
-            teacherName: 'Ananay Sharma',
-            status: 'Pending Approval',
+            teacherId: users[1].id,
+            status: 'Draft',
             totalMarks: 50,
-            duration: 45,
-            questions: [questions[0].id, questions[1].id]
+            duration: 45
         });
         console.log(`✅ Seeded 1 exam`);
 

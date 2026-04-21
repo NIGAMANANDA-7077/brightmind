@@ -74,3 +74,62 @@ exports.getMe = async (req, res, next) => {
         res.status(500).json({ success: false, message: 'Server error fetching profile' });
     }
 };
+
+exports.forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
+
+        const User = require('../models/User');
+        const crypto = require('crypto');
+        const { sendPasswordResetEmail } = require('../services/emailService');
+
+        const user = await User.findOne({ where: { email } });
+
+        // Always return success to prevent email enumeration
+        if (!user) {
+            return res.json({ success: true, message: 'If that email exists, a reset link has been sent.' });
+        }
+
+        // Generate a secure token
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const resetTokenExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+        await user.update({ resetToken, resetTokenExpiry });
+
+        await sendPasswordResetEmail({ name: user.name, email: user.email, resetToken });
+
+        res.json({ success: true, message: 'If that email exists, a reset link has been sent.' });
+    } catch (error) {
+        console.error('❌ Forgot password error:', error);
+        res.status(500).json({ success: false, message: 'Server error. Please try again.' });
+    }
+};
+
+exports.resetPassword = async (req, res) => {
+    try {
+        const { token } = req.params;
+        const { password } = req.body;
+
+        if (!token || !password) {
+            return res.status(400).json({ success: false, message: 'Token and new password are required' });
+        }
+        if (password.length < 6) {
+            return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+        }
+
+        const User = require('../models/User');
+        const user = await User.findOne({ where: { resetToken: token } });
+
+        if (!user || !user.resetTokenExpiry || new Date() > new Date(user.resetTokenExpiry)) {
+            return res.status(400).json({ success: false, message: 'Reset link is invalid or has expired.' });
+        }
+
+        await user.update({ password, resetToken: null, resetTokenExpiry: null });
+
+        res.json({ success: true, message: 'Password reset successfully. You can now log in.' });
+    } catch (error) {
+        console.error('❌ Reset password error:', error);
+        res.status(500).json({ success: false, message: 'Server error. Please try again.' });
+    }
+};

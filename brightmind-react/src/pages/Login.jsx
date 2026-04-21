@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, GraduationCap, School } from 'lucide-react';
+import { User, GraduationCap, School, Eye, EyeOff } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 
 const Login = () => {
@@ -11,6 +11,21 @@ const Login = () => {
         password: ''
     });
     const [errors, setErrors] = useState({});
+    const [showPassword, setShowPassword] = useState(false);
+    const [greeting, setGreeting] = useState('Welcome Back');
+
+    useEffect(() => {
+        const greetings = [
+            'Welcome',
+            'Hello there!',
+            'Glad to see you!',
+            'Ready to learn?',
+            'Welcome to BrightMind',
+            'Let\'s get started!'
+        ];
+        const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
+        setGreeting(randomGreeting);
+    }, []);
 
     const { login, studentLogin } = useUser();
 
@@ -82,7 +97,7 @@ const Login = () => {
 
                 {/* Header */}
                 <div className="text-center pt-10 pb-6 px-8">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Welcome Back</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">{greeting}</h1>
                     <p className="text-gray-500 dark:text-gray-400">Please select your role to login</p>
                 </div>
 
@@ -142,20 +157,30 @@ const Login = () => {
                         <div className="space-y-2">
                             <div className="flex justify-between items-center ml-1">
                                 <label className="text-sm font-bold text-[color:var(--text-primary)]">Password</label>
-                                <a href="#" className="text-sm font-semibold text-[#8b5cf6] hover:text-[#7c3aed]">Forgot Password?</a>
+                                <Link to="/forgot-password" className="text-sm font-semibold text-[#8b5cf6] hover:text-[#7c3aed]">Forgot Password?</Link>
                             </div>
-                            <input
-                                type="password"
-                                name="password"
-                                value={formData.password}
-                                onChange={handleChange}
-                                placeholder="Enter your password"
-                                className={`w-full px-5 py-4 rounded-xl input-surface border outline-none transition-all placeholder:text-gray-400 font-medium ${errors.password
-                                    ? 'border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-500/10'
-                                    : 'border-[color:var(--border-color)] focus:border-[#8b5cf6] focus:ring-4 focus:ring-[#8b5cf6]/10'
-                                    }`}
-                                required
-                            />
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        name="password"
+                                        value={formData.password}
+                                        onChange={handleChange}
+                                        placeholder="Enter your password"
+                                        className={`w-full px-5 py-4 rounded-xl input-surface border outline-none transition-all placeholder:text-gray-400 font-medium pr-12 ${errors.password
+                                            ? 'border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-500/10'
+                                            : 'border-[color:var(--border-color)] focus:border-[#8b5cf6] focus:ring-4 focus:ring-[#8b5cf6]/10'
+                                            }`}
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                                        tabIndex={-1}
+                                    >
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
                             {errors.password && (
                                 <p className="text-red-500 text-sm ml-1 font-medium animate-pulse">
                                     {errors.password}
@@ -173,14 +198,6 @@ const Login = () => {
                             className="w-full btn-gradient hover:brightness-110 text-white py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 mt-4"
                         >
                             Login as {selectedRole}
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={handleDemoLogin}
-                            className="w-full bg-[color:var(--card-bg)] border-2 border-dashed border-[color:var(--border-color)] text-[color:var(--text-secondary)] hover:border-[#8b5cf6] hover:text-[#8b5cf6] py-3 rounded-xl font-bold text-base transition-all mt-4"
-                        >
-                            Auto-Fill Demo Credentials
                         </button>
                     </form>
 

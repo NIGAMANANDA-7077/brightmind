@@ -124,7 +124,7 @@ exports.getDashboard = async (req, res) => {
         let assignments = [];
         if (batchIds.length > 0) {
             assignments = await Assignment.findAll({
-                where: { batchId: batchIds },
+                where: { batchId: { [Op.in]: batchIds } },
                 order: [['createdAt', 'DESC']],
                 limit: 30,
             });
@@ -144,7 +144,7 @@ exports.getDashboard = async (req, res) => {
         let pendingSubmissions = [];
         if (assignmentIds.length > 0) {
             pendingSubmissions = await Submission.findAll({
-                where: { assignmentId: assignmentIds, status: 'Submitted' },
+                where: { assignmentId: { [Op.in]: assignmentIds }, status: 'Submitted' },
                 include: [{ model: User, as: 'student', attributes: ['name', 'avatar'] }],
                 order: [['createdAt', 'DESC']],
                 limit: 10,
@@ -167,7 +167,7 @@ exports.getDashboard = async (req, res) => {
         const courseIds = courses.map(c => c.id);
         const enrollmentCounts = courseIds.length > 0
             ? await Enrollment.findAll({
-                where:      { courseId: courseIds },
+                where:      { courseId: { [Op.in]: courseIds } },
                 attributes: ['courseId'],
             })
             : [];

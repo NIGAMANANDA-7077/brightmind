@@ -42,6 +42,7 @@ require('./models/Note');
 require('./models/EnrollmentRequest');
 require('./models/AdminActivityLog');
 require('./models/Tenant');
+require('./models/BlogPost');
 
 // Load Associations
 require('./models/associations');
@@ -75,6 +76,8 @@ const studentRoutes = require('./routes/student.routes');
 const teacherRoutes = require('./routes/teacher.routes');
 const adminRoutes = require('./routes/admin.routes');
 const superadminRoutes = require('./routes/superadmin.routes');
+const blogRoutes = require('./routes/blog.routes');
+const adminBlogRoutes = require('./routes/adminBlog.routes');
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -136,6 +139,8 @@ app.use('/api/student', studentRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/superadmin', superadminRoutes);
+app.use('/api/blogs', blogRoutes);
+app.use('/api/admin/blogs', adminBlogRoutes);
 
 // ─── Health Check ─────────────────────────────────────────
 app.get('/api/health', (req, res) => {
@@ -167,6 +172,16 @@ const startServer = async () => {
         } catch (studentIdErr) {
             // Error 1060 = Duplicate column (already exists), safe to ignore
             console.log('ℹ️ studentId column migration skipped:', studentIdErr.message);
+        }
+
+        // One-time migration: social links on Users table
+        try {
+            await sequelize.query("ALTER TABLE Users ADD COLUMN linkedinUrl VARCHAR(255) NULL;");
+            await sequelize.query("ALTER TABLE Users ADD COLUMN twitterUrl VARCHAR(255) NULL;");
+            await sequelize.query("ALTER TABLE Users ADD COLUMN facebookUrl VARCHAR(255) NULL;");
+            console.log('✅ Social link columns added to Users');
+        } catch (socialLinkErr) {
+            console.log('ℹ️ Social link columns migration skipped:', socialLinkErr.message);
         }
 
         // One-time migration: change videoUrl from VARCHAR to TEXT
@@ -472,6 +487,14 @@ const startServer = async () => {
                 console.log(`✅ Assigned legacy null-tenantId data to Admin "${firstAdmin.name}" (tenantId: ${firstAdmin.tenantId})`);
             }
         } catch (e) { console.log('ℹ️ Legacy data tenant assignment skipped:', e.message); }
+
+        // One-time migration: make Threads.courseId nullable (student questions don't need a course)
+        try {
+            await sequelize.query("SET FOREIGN_KEY_CHECKS=0;");
+            await sequelize.query("ALTER TABLE Threads MODIFY COLUMN courseId CHAR(36) BINARY NULL;");
+            await sequelize.query("SET FOREIGN_KEY_CHECKS=1;");
+            console.log('✅ Threads.courseId column made nullable');
+        } catch (e) { console.log('ℹ️ Threads.courseId nullable migration skipped:', e.message); }
 
         httpServer.on('error', (err) => {
             if (err.code === 'EADDRINUSE') {

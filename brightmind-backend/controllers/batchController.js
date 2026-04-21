@@ -241,10 +241,21 @@ exports.getBatchStudents = async (req, res) => {
     }
 };
 
-// ─── Teacher: Get My Batches (returns all batches so teacher can see/pick any) ─
+// ─── Teacher/Admin: Get My Batches ──────────────────────────
 exports.getTeacherBatches = async (req, res) => {
     try {
-        const where = req.user?.role === 'SuperAdmin' ? {} : { tenantId: req.user?.tenantId || null };
+        const role = req.user?.role || '';
+        const isSuperAdmin = role === 'SuperAdmin';
+        const isAdmin = role === 'Admin';
+
+        const where = {};
+        if (!isSuperAdmin) {
+            where.tenantId = req.user?.tenantId || null;
+        }
+        if (!isSuperAdmin && !isAdmin) {
+            where.teacherId = req.user.id;
+        }
+
         const batches = await Batch.findAll({
             where,
             include: [
@@ -333,8 +344,14 @@ exports.getStudentBatch = async (req, res) => {
 exports.getStudentLiveClasses = async (req, res) => {
     try {
         const BatchStudent = require('../models/BatchStudent');
+        const User = require('../models/User');
         const studentBatches = await BatchStudent.findAll({ where: { studentId: req.user.id } });
         const batchIds = studentBatches.map(b => b.batchId);
+
+        const studentUser = await User.findByPk(req.user.id, { attributes: ['id', 'batchId'] });
+        if (studentUser?.batchId && !batchIds.includes(studentUser.batchId)) {
+            batchIds.push(studentUser.batchId);
+        }
 
         const { Op } = require('sequelize');
         let whereClause = {};

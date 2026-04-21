@@ -33,7 +33,11 @@ export const BatchProvider = ({ children, role }) => {
             setLoading(true);
             try {
                 const res = await api.get('/batches/teacher/my-batches');
-                if (res.data.success) setTeacherBatches(res.data.data || []);
+                if (res.data.success) {
+                    const data = res.data.data || [];
+                    setTeacherBatches(data);
+                    setMyBatches(data); // reuse myBatches for teacher-facing screens (assignments, live, etc.)
+                }
             } catch (err) { 
                 console.error("[BatchContext] Error fetching teacher batches:", err.response?.data || err.message);
             }

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
 
-import MeshBackground from './MeshBackground';
+
 
 const PartnersSection = () => {
   const [ref, isVisible] = useScrollAnimation({ threshold: 0.2, once: true });
@@ -19,7 +19,7 @@ const PartnersSection = () => {
 
   return (
     <section className="relative py-16 overflow-hidden">
-      <MeshBackground />
+
       <div className="container-custom mb-12 relative z-10">
         <div
           ref={ref}

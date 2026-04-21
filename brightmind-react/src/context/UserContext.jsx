@@ -38,6 +38,7 @@ export const UserProvider = ({ children }) => {
             if (res.data.success) {
                 setUser(res.data.user);
                 localStorage.setItem('brightmind_user', JSON.stringify(res.data.user));
+                window.dispatchEvent(new Event('auth_change'));
                 return { success: true, role: res.data.user.role };
             }
         } catch (error) {
@@ -55,6 +56,7 @@ export const UserProvider = ({ children }) => {
             if (res.data.success) {
                 setUser(res.data.user);
                 localStorage.setItem('brightmind_user', JSON.stringify(res.data.user));
+                window.dispatchEvent(new Event('auth_change'));
                 return { success: true, role: res.data.user.role };
             }
         } catch (error) {
@@ -85,6 +87,7 @@ export const UserProvider = ({ children }) => {
     const logout = () => {
         setUser(null);
         localStorage.removeItem('brightmind_user');
+        window.dispatchEvent(new Event('auth_change'));
     };
 
     const updateUser = async (updatedData) => {

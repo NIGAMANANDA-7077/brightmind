@@ -17,7 +17,7 @@ const Thread = sequelize.define('Thread', {
     },
     courseId: {
         type: DataTypes.UUID,
-        allowNull: false
+        allowNull: true // Optional - not all student questions are tied to a specific course
     },
     batchId: {
         type: DataTypes.UUID,

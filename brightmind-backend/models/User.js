@@ -45,6 +45,18 @@ const User = sequelize.define('User', {
         type: DataTypes.TEXT,
         allowNull: true
     },
+    linkedinUrl: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    twitterUrl: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    facebookUrl: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     qualification: {
         type: DataTypes.STRING,
         allowNull: true
@@ -97,6 +109,14 @@ const User = sequelize.define('User', {
             { name: 'Week 3', hours: 0 },
             { name: 'Week 4', hours: 0 }
         ]
+    },
+    resetToken: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    resetTokenExpiry: {
+        type: DataTypes.DATE,
+        allowNull: true
     }
 }, {
     timestamps: true,

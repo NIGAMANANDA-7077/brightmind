@@ -74,6 +74,9 @@ const UserCreate = () => {
         experience:       '',
         department:       '',
         bio:              '',
+        linkedinUrl:      '',
+        twitterUrl:       '',
+        facebookUrl:      '',
         teacherCourseIds: [],
     });
 
@@ -98,6 +101,9 @@ const UserCreate = () => {
                     experience:     user.experience    || '',
                     department:     user.department    || '',
                     bio:            user.bio           || '',
+                    linkedinUrl:    user.linkedinUrl   || '',
+                    twitterUrl:     user.twitterUrl    || '',
+                    facebookUrl:    user.facebookUrl   || '',
                     batchId:        user.batchId       || '',
                     enrollmentDate: user.createdAt
                         ? new Date(user.createdAt).toISOString().split('T')[0]
@@ -217,6 +223,9 @@ const UserCreate = () => {
                     qualification: role === 'Teacher' ? formData.qualification : undefined,
                     experience:    role === 'Teacher' ? formData.experience    : undefined,
                     department:    role === 'Teacher' ? formData.department    : undefined,
+                    linkedinUrl:   role === 'Teacher' ? formData.linkedinUrl   : undefined,
+                    twitterUrl:    role === 'Teacher' ? formData.twitterUrl    : undefined,
+                    facebookUrl:   role === 'Teacher' ? formData.facebookUrl   : undefined,
                 });
                 navigate('/admin/users');
                 return;
@@ -243,6 +252,9 @@ const UserCreate = () => {
                 payload.experience       = formData.experience;
                 payload.department       = formData.department;
                 payload.bio              = formData.bio;
+                payload.linkedinUrl      = formData.linkedinUrl;
+                payload.twitterUrl       = formData.twitterUrl;
+                payload.facebookUrl      = formData.facebookUrl;
                 payload.teacherCourseIds = formData.teacherCourseIds;
             }
 
@@ -451,7 +463,7 @@ const UserCreate = () => {
                                     name="phone"
                                     value={formData.phone}
                                     onChange={handleChange}
-                                    placeholder="+91 98765 43210"
+                                    placeholder="mobile number"
                                     className={`w-full pl-10 pr-4 py-2.5 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all font-medium
                                         ${errors.phone ? 'border-red-300 focus:ring-red-200' : 'border-gray-200'}`}
                                 />
@@ -710,6 +722,43 @@ const UserCreate = () => {
                                     placeholder="Short professional biography..."
                                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all font-medium resize-none"
                                 />
+                            </div>
+
+                            {/* Social Links */}
+                            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-sm font-bold text-gray-700">LinkedIn URL</label>
+                                    <input
+                                        type="url"
+                                        name="linkedinUrl"
+                                        value={formData.linkedinUrl}
+                                        onChange={handleChange}
+                                        placeholder="https://linkedin.com/in/username"
+                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all font-medium"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-sm font-bold text-gray-700">Twitter URL</label>
+                                    <input
+                                        type="url"
+                                        name="twitterUrl"
+                                        value={formData.twitterUrl}
+                                        onChange={handleChange}
+                                        placeholder="https://twitter.com/username"
+                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all font-medium"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-sm font-bold text-gray-700">Facebook URL</label>
+                                    <input
+                                        type="url"
+                                        name="facebookUrl"
+                                        value={formData.facebookUrl}
+                                        onChange={handleChange}
+                                        placeholder="https://facebook.com/username"
+                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 transition-all font-medium"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>

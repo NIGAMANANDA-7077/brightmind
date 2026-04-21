@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import CourseCard from './CourseCard';
-import MeshBackground from './MeshBackground';
+
 
 const DEFAULT_THUMBNAIL = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop&q=60';
 
@@ -43,7 +43,7 @@ const CoursesSection = () => {
 
   return (
     <section id="courses" className="relative py-20 md:py-28 overflow-hidden">
-      <MeshBackground />
+
       <div className="container-custom relative z-10">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">

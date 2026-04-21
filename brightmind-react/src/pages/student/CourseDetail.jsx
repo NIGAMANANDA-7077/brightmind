@@ -1,20 +1,66 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Clock, Users, Star, Award, BookOpen, PlayCircle,
-    CheckCircle, Lock, Download, ArrowLeft, FileText, BarChart
+    CheckCircle, Lock, Download, ArrowLeft, FileText, BarChart, Send
 } from 'lucide-react';
 import { useCourse } from '../../context/CourseContext';
+import { useUser } from '../../context/UserContext';
 
 const CourseDetail = () => {
     const { courseId } = useParams();
     const navigate = useNavigate();
     const { getCourse, getProgress, getCompletedLessonsCount } = useCourse();
+    const { user } = useUser();
+
+    const [reviews, setReviews] = useState([]);
+    const [myRating, setMyRating] = useState(0);
+    const [hoverRating, setHoverRating] = useState(0);
+    const [myComment, setMyComment] = useState('');
+    const [reviewSubmitting, setReviewSubmitting] = useState(false);
+    const [reviewMsg, setReviewMsg] = useState('');
+
+    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
     // Scroll to top on mount
     useEffect(() => {
         window.scrollTo(0, 0);
-    }, []);
+        fetchReviews();
+    }, [courseId]);
+
+    const fetchReviews = async () => {
+        try {
+            const res = await fetch(`${API_BASE}/reviews/course/${courseId}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success) setReviews(data.data || []);
+            }
+        } catch { /* silent */ }
+    };
+
+    const handleReviewSubmit = async (e) => {
+        e.preventDefault();
+        if (!myRating) { setReviewMsg('Please select a star rating.'); return; }
+        setReviewSubmitting(true);
+        setReviewMsg('');
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE}/reviews`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ courseId, rating: myRating, comment: myComment }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                setReviewMsg('✅ Review submitted successfully!');
+                setMyComment('');
+                fetchReviews();
+            } else {
+                setReviewMsg(data.message || 'Failed to submit review.');
+            }
+        } catch { setReviewMsg('Network error. Please try again.'); }
+        finally { setReviewSubmitting(false); }
+    };
 
     const course = getCourse(courseId);
 
@@ -285,6 +331,84 @@ const CourseDetail = () => {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Review Section */}
+            <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
+                <h3 className="text-xl font-bold text-gray-900 mb-6">Rate This Course</h3>
+
+                {/* Submit Review Form */}
+                <form onSubmit={handleReviewSubmit} className="mb-8 pb-8 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-600 mb-3">Your Rating</p>
+                    <div className="flex gap-1 mb-4">
+                        {[1, 2, 3, 4, 5].map(star => (
+                            <button
+                                key={star}
+                                type="button"
+                                onClick={() => setMyRating(star)}
+                                onMouseEnter={() => setHoverRating(star)}
+                                onMouseLeave={() => setHoverRating(0)}
+                                className="focus:outline-none transition-transform hover:scale-110"
+                            >
+                                <Star
+                                    size={32}
+                                    className={(hoverRating || myRating) >= star ? 'text-yellow-400' : 'text-gray-200'}
+                                    fill={(hoverRating || myRating) >= star ? 'currentColor' : 'none'}
+                                />
+                            </button>
+                        ))}
+                        {myRating > 0 && (
+                            <span className="ml-3 self-center text-sm font-bold text-gray-600">
+                                {['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][myRating]}
+                            </span>
+                        )}
+                    </div>
+                    <textarea
+                        value={myComment}
+                        onChange={e => setMyComment(e.target.value)}
+                        placeholder="Write your review (optional)..."
+                        rows={3}
+                        className="w-full border border-gray-200 rounded-xl p-3 text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/30 focus:border-[#8b5cf6] mb-3"
+                    />
+                    {reviewMsg && (
+                        <p className={`text-sm mb-3 font-medium ${reviewMsg.startsWith('✅') ? 'text-green-600' : 'text-red-500'}`}>{reviewMsg}</p>
+                    )}
+                    <button
+                        type="submit"
+                        disabled={reviewSubmitting || !myRating}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-[#8b5cf6] text-white rounded-xl font-bold text-sm hover:bg-[#7c3aed] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <Send size={15} /> {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
+                    </button>
+                </form>
+
+                {/* Existing Reviews */}
+                <h4 className="font-bold text-gray-900 mb-4">Student Reviews {reviews.length > 0 && <span className="text-gray-400 font-normal text-sm">({reviews.length})</span>}</h4>
+                {reviews.length > 0 ? (
+                    <div className="space-y-4">
+                        {reviews.map(review => (
+                            <div key={review.id} className="flex gap-4 pb-4 border-b border-gray-50 last:border-0">
+                                <img
+                                    src={review.student?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(review.student?.name || 'Student')}&background=8b5cf6&color=fff&size=64`}
+                                    alt={review.student?.name}
+                                    className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                                />
+                                <div>
+                                    <p className="font-bold text-gray-900 text-sm">{review.student?.name || 'Student'}</p>
+                                    <div className="flex text-yellow-400 mb-1">
+                                        {[1,2,3,4,5].map(s => (
+                                            <Star key={s} size={12} fill={s <= review.rating ? 'currentColor' : 'none'} className={s > review.rating ? 'text-gray-200' : ''} />
+                                        ))}
+                                        <span className="text-gray-400 text-xs ml-2">{new Date(review.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</span>
+                                    </div>
+                                    {review.comment && <p className="text-gray-600 text-sm italic">"{review.comment}"</p>}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-sm text-gray-400">No reviews yet. Be the first!</p>
+                )}
             </div>
         </div>
     );
