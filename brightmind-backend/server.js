@@ -507,8 +507,8 @@ const startServer = async () => {
                 throw err;
             }
         });
-        httpServer.listen(PORT, () => {
-            console.log(`🚀 BrightMind server running on http://localhost:${PORT}`);
+        httpServer.listen(PORT, '0.0.0.0', () => {
+            console.log(`🚀 BrightMind server running on port ${PORT} (0.0.0.0)`);
         });
     } catch (error) {
         console.error('❌ Failed to connect to database:', error.message);
