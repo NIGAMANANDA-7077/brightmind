@@ -87,7 +87,9 @@ const allowedOrigins = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'https://brightmind-nine.vercel.app',
-    'https://brightmind-git-main-nigamananda-7077s-projects.vercel.app'
+    'https://brightmind-git-main-nigamananda-7077s-projects.vercel.app',
+    // Railway frontend URL (set CLIENT_URL env variable on Railway)
+    ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []),
 ];
 
 // Initialize socket.io
