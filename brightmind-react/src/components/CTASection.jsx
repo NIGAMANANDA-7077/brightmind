@@ -9,7 +9,7 @@ const CTASection = () => {
 
   const floatingImages = [
     {
-      src: "https://media.licdn.com/dms/image/v2/D5635AQEyj-iPH-dl9g/profile-framedphoto-shrink_400_400/B56ZXOnMt8HEAg-/0/1742928137410?e=1776582000&v=beta&t=5eVGAi-YiZhVVVcSVaUhy71cZThsuioU8h-YNL3hprc",
+      src: "https://media.licdn.com/dms/image/v2/D5635AQEyj-iPH-dl9g/profile-framedphoto-shrink_400_400/B56ZXOnMt8HEAg-/0/1742928137410?e=1777665600&v=beta&t=SqyPCz-7YBYFVD97GSgm_SX-VzEx6h6GD9Nqc1UYh0g",
       shape: "rounded-xl rotate-[-12deg]",
       position: "top-[15%] left-[10%] md:left-[15%]",
       size: "w-16 h-16 md:w-20 md:h-20"

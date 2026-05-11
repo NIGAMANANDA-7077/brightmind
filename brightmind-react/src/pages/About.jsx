@@ -47,19 +47,19 @@ const About = () => {
     ];
 
     return (
-        <div className="pt-20">
+        <div className="pt-20 bg-white dark:bg-gray-900">
 
             {/* Hero Section */}
-            <section className="py-20 bg-white">
+            <section className="py-20 bg-white dark:bg-gray-900">
                 <div className="container-custom text-center">
                     <div
                         ref={heroRef}
                         className={`transition-all duration-1000 ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
                     >
-                        <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+                        <h1 className="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
                             About <span className="text-[#8b5cf6]">BrightMind  Classes</span>
                         </h1>
-                        <p className="text-gray-500 text-lg max-w-2xl mx-auto mb-12">
+                        <p className="text-gray-500 dark:text-gray-400 text-lg max-w-2xl mx-auto mb-12">
                             Empowering learners worldwide directly through quality Classes.
                             We believe in making knowledge accessible, engaging, and practical for everyone.
                         </p>
@@ -79,9 +79,9 @@ const About = () => {
                         className={`grid grid-cols-2 md:grid-cols-4 gap-8 mt-16 max-w-5xl mx-auto stagger-children ${statsVisible ? 'visible' : ''}`}
                     >
                         {stats.map((stat, index) => (
-                            <div key={index} className="text-center scroll-slide-up bg-white p-4 rounded-2xl hover:shadow-md transition-all duration-300">
+                            <div key={index} className="text-center scroll-slide-up bg-white dark:bg-gray-800 p-4 rounded-2xl hover:shadow-md transition-all duration-300">
                                 <div className="text-3xl md:text-4xl font-bold text-[#8b5cf6] mb-2">{stat.value}</div>
-                                <div className="text-gray-500 font-medium text-sm md:text-base">{stat.label}</div>
+                                <div className="text-gray-500 dark:text-gray-300 font-medium text-sm md:text-base">{stat.label}</div>
                             </div>
                         ))}
                     </div>
@@ -89,10 +89,10 @@ const About = () => {
             </section>
 
             {/* Core Values Section */}
-            <section className="py-20 bg-[#fbfbfb]">
+            <section className="py-20 bg-[#fbfbfb] dark:bg-gray-900/50">
                 <div className="container-custom">
                     <h2
-                        className={`text-center text-4xl font-bold text-gray-900 mb-16 transition-all duration-1000 ${valuesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
+                        className={`text-center text-4xl font-bold text-gray-900 dark:text-white mb-16 transition-all duration-1000 ${valuesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
                     >
                         Our Core <span className="text-[#8b5cf6]">Values</span>
                     </h2>
@@ -104,12 +104,12 @@ const About = () => {
                         {values.map((item, index) => {
                             const Icon = item.icon;
                             return (
-                                <div key={index} className={`p-8 rounded-3xl ${item.color.split(' ')[0]} bg-opacity-50 hover:shadow-lg transition-all duration-300 scroll-slide-up h-full`}>
+                                <div key={index} className={`p-8 rounded-3xl ${item.color.split(' ')[0]} bg-opacity-50 dark:bg-gray-800 dark:bg-opacity-100 dark:border dark:border-gray-700 hover:shadow-lg transition-all duration-300 scroll-slide-up h-full`}>
                                     <div className={`w-12 h-12 rounded-xl ${item.color} bg-opacity-20 flex items-center justify-center mb-6`}>
                                         <Icon className={`w-6 h-6 ${item.color.split(' ')[1]}`} />
                                     </div>
-                                    <h3 className="text-xl font-bold text-gray-900 mb-3">{item.title}</h3>
-                                    <p className="text-gray-600 leading-relaxed text-sm">
+                                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">{item.title}</h3>
+                                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-sm">
                                         {item.desc}
                                     </p>
                                 </div>
@@ -120,7 +120,7 @@ const About = () => {
             </section>
 
             {/* Why Choose Section */}
-            <section className="py-20 bg-white">
+            <section className="py-20 bg-white dark:bg-gray-900">
                 <div className="container-custom">
                     <div
                         ref={chooseRef}
@@ -139,11 +139,11 @@ const About = () => {
 
                         {/* Right Content */}
                         <div className={`w-full lg:w-1/2 transition-all duration-1000 delay-300 ${chooseVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
-                            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-8 leading-tight">
+                            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-8 leading-tight">
                                 Why Choose <br />
                                 BrightMind  Classes <span className="text-[#8b5cf6]">Training?</span>
                             </h2>
-                            <p className="text-gray-500 text-lg mb-8 leading-relaxed">
+                            <p className="text-gray-500 dark:text-gray-400 text-lg mb-8 leading-relaxed">
                                 Our distinct learning approach sets us apart. We focus on practical skills
                                 that employers value. Join our diverse community and start your journey today.
                             </p>
@@ -157,7 +157,7 @@ const About = () => {
                                 ].map((item, i) => (
                                     <li key={i} className="flex items-center gap-3">
                                         <CheckCircle className="w-6 h-6 text-[#8b5cf6] flex-shrink-0" />
-                                        <span className="text-gray-700 font-medium">{item}</span>
+                                        <span className="text-gray-700 dark:text-gray-300 font-medium">{item}</span>
                                     </li>
                                 ))}
                             </ul>

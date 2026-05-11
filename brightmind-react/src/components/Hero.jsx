@@ -1,5 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import teammate1 from '../teammate 1.jpg';
+import teammate2 from '../teammate 2.png';
+import teammate3 from '../teammate 3.jpg';
+import teammate4 from '../teammate 4.png';
 
 
 const Hero = () => {
@@ -37,7 +41,7 @@ const Hero = () => {
       <div className="absolute top-[20%] left-[5%] lg:left-[10%] hidden md:block animate-float">
         <div className="w-16 h-16 lg:w-20 lg:h-20 bg-[#a78bfa] rounded-2xl rotate-[-10deg] overflow-hidden shadow-xl border-4 border-white">
           <img
-            src="https://media.licdn.com/dms/image/v2/D5635AQEyj-iPH-dl9g/profile-framedphoto-shrink_400_400/B56ZXOnMt8HEAg-/0/1742928137410?e=1777269600&v=beta&t=J9KMGYCgTpRQioBOtGaj48dTP-EjAc5zY9R6FNrWqII"
+            src={teammate1}
             alt="Team Member"
             className="w-full h-full object-cover"
           />
@@ -49,7 +53,7 @@ const Hero = () => {
         <div className="w-16 h-16 lg:w-24 lg:h-24 bg-[#fb923c] shape-hexagon shadow-xl border-4 border-white overflow-hidden flex items-center justify-center">
           <div className="w-full h-full shape-hexagon overflow-hidden bg-[#fb923c]">
             <img
-              src="https://media.licdn.com/dms/image/v2/D4D03AQHz9TBxQo8efA/profile-displayphoto-crop_800_800/B4DZg8IyasGsAI-/0/1753355595666?e=1777507200&v=beta&t=oAkCmFNn8LK79UJeirz7H29wh1_V9YiWn4EmFtq5tmw"
+              src={teammate2}
               alt="Team Member"
               className="w-full h-full object-cover"
             />
@@ -62,7 +66,7 @@ const Hero = () => {
         <div className="w-20 h-20 lg:w-28 lg:h-28 bg-[#fb7185] shape-hexagon shadow-xl flex items-center justify-center overflow-hidden">
           <div className="w-full h-full shape-hexagon overflow-hidden bg-[#fb7185]">
             <img
-              src="https://media.licdn.com/dms/image/v2/D4D03AQGj8yHrj68Bxw/profile-displayphoto-crop_800_800/B4DZpEDXYiKIAI-/0/1762078326282?e=1777507200&v=beta&t=JkOX4VclWf0TnerAXWfcj1EBnC6s-4W49bwsK6i5LME"
+              src={teammate3}
               alt="Team Member"
               className="w-full h-full object-cover"
             />
@@ -74,7 +78,7 @@ const Hero = () => {
       <div className="absolute bottom-[15%] right-[8%] lg:right-[12%] hidden md:block animate-float">
         <div className="w-16 h-16 lg:w-24 lg:h-24 bg-[#2dd4bf] shape-blob shadow-xl overflow-hidden flex items-center justify-center border-4 border-white">
           <img
-            src="https://media.licdn.com/dms/image/v2/D5603AQFpu-RYoN4aCw/profile-displayphoto-shrink_800_800/B56ZYWJsNgGoAc-/0/1744128362613?e=1777507200&v=beta&t=KlOUvmq2MmeygRom_YK5aPBITb0U0R3Oh1-0OUDjD_U"
+            src={teammate4}
             alt="Team Member"
             className="w-full h-full object-cover"
           />
