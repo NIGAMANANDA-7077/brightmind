@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTeacher } from '../context/TeacherContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useNotifications } from '../../hooks/useNotifications';
+import { useUser } from '../../context/UserContext';
 
 // =========================================================
 // Teacher Topbar
@@ -34,6 +35,7 @@ const NotifModal = ({ notif, onClose }) => {
 
 const Topbar = ({ toggleMobileSidebar }) => {
     const { profile } = useTeacher();
+    const { user } = useUser();
     const { isDarkMode, toggleTheme } = useTheme();
     const navigate = useNavigate();
     const { notifications, unread, unreadCount, markAsRead, markAllAsRead } = useNotifications();
@@ -151,12 +153,12 @@ const Topbar = ({ toggleMobileSidebar }) => {
                 {/* Profile */}
                 <div className="flex items-center gap-3 pl-4 border-l border-gray-100 dark:border-gray-700">
                     <div className="text-right hidden sm:block">
-                        <p className="text-sm font-bold text-gray-900 dark:text-white leading-none">{profile?.name || 'Teacher'}</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white leading-none">{user?.name || profile?.name || 'Teacher'}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Teacher</p>
                     </div>
                     <Link to="/teacher/profile">
                         <img
-                            src={profile?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Teacher'}
+                            src={user?.avatar || profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user?.name || 'Teacher')}`}
                             alt="Teacher"
                             className="w-9 h-9 rounded-full object-cover border-2 border-gray-100 dark:border-gray-700 cursor-pointer"
                         />
