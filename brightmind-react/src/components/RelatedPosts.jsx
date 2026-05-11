@@ -35,19 +35,19 @@ const RelatedPosts = ({ currentSlug, currentCategory }) => {
     }, [currentSlug, currentCategory]);
 
     if (loading) {
-        return <div className="py-20 bg-[#fbfbfb] flex justify-center"><Loader2 className="animate-spin text-gray-400" /></div>;
+        return <div className="py-20 flex justify-center" style={{backgroundColor:'var(--bg-secondary)'}}><Loader2 className="animate-spin text-gray-400" /></div>;
     }
 
     if (related.length === 0) return null;
 
     return (
-        <section className="py-20 bg-[#fbfbfb]">
+        <section className="py-20" style={{backgroundColor:'var(--bg-secondary)'}}>
             <div className="container-custom">
-                <h3 className="text-3xl font-bold text-gray-900 mb-10">Related Articles</h3>
+                <h3 className="text-3xl font-bold mb-10" style={{color:'var(--text-primary)'}}>Related Articles</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {related.map(post => (
                         <Link to={`/blog/${post.slug}`} key={post.id} className="group block">
-                            <div className="bg-white rounded-3xl overflow-hidden hover:shadow-lg transition-all duration-300 h-full flex flex-col">
+                            <div className="rounded-3xl overflow-hidden hover:shadow-lg transition-all duration-300 h-full flex flex-col" style={{backgroundColor:'var(--card-bg)'}}>
                                 <div className="h-48 overflow-hidden relative bg-purple-50 flex items-center justify-center">
                                     {post.image ? (
                                         <img
@@ -63,7 +63,7 @@ const RelatedPosts = ({ currentSlug, currentCategory }) => {
                                     </div>
                                 </div>
                                 <div className="p-6 flex flex-col flex-1">
-                                    <h4 className="text-xl font-bold text-gray-900 mb-4 group-hover:text-[#8b5cf6] transition-colors line-clamp-2">
+                                    <h4 className="text-xl font-bold mb-4 group-hover:text-[#8b5cf6] transition-colors line-clamp-2" style={{color:'var(--text-primary)'}}>
                                         {post.title}
                                     </h4>
                                     <div className="mt-auto flex items-center gap-2 text-xs text-gray-400">

@@ -35,7 +35,7 @@ const Contact = () => {
     return (
         <div className="pt-20">
             {/* Page Header */}
-            <section className="py-20 bg-white text-center">
+            <section className="py-20 text-center" style={{backgroundColor:'var(--bg-primary)'}}>
                 <div
                     ref={headerRef}
                     className={`container-custom transition-all duration-1000 ${headerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
@@ -50,7 +50,7 @@ const Contact = () => {
             </section>
 
             {/* Main Content */}
-            <section className="pb-24 bg-[#fbfbfb] pt-12">
+            <section className="pb-24 pt-12" style={{backgroundColor:'var(--bg-secondary)'}}>
                 <div className="container-custom">
                     <div
                         ref={contentRef}

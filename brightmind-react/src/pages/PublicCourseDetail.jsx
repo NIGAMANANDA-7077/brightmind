@@ -223,13 +223,13 @@ const PublicCourseDetail = () => {
                     {/* Left Column: Content */}
                     <div className="lg:col-span-2 space-y-12">
                         {/* About Course */}
-                        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+                        <div className="rounded-3xl p-8 shadow-sm" style={{backgroundColor:'var(--card-bg)',border:'1px solid var(--border-color)'}}>
                             <h3 className="text-2xl font-bold text-gray-900 mb-6">About This Course</h3>
                             <p className="text-gray-600 leading-relaxed text-lg mb-8">
                                 {course.description}
                             </p>
 
-                            <div className="bg-gray-50 rounded-2xl p-8 border border-gray-100">
+                            <div className="rounded-2xl p-8" style={{backgroundColor:'var(--bg-secondary)',border:'1px solid var(--border-color)'}}>
                                 <h4 className="font-bold text-gray-900 mb-6 flex items-center gap-2">
                                     <CheckCircle size={20} className="text-green-500" />
                                     What you'll learn
@@ -246,7 +246,7 @@ const PublicCourseDetail = () => {
                         </div>
 
                         {/* Curriculum */}
-                        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+                        <div className="rounded-3xl p-8 shadow-sm" style={{backgroundColor:'var(--card-bg)',border:'1px solid var(--border-color)'}}>
                             <h3 className="text-2xl font-bold text-gray-900 mb-6">Course Curriculum</h3>
                             <div className="space-y-4">
                                 {course.curriculum.map((module, idx) => (
@@ -256,7 +256,7 @@ const PublicCourseDetail = () => {
                         </div>
 
                         {/* Instructor */}
-                        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+                        <div className="rounded-3xl p-8 shadow-sm" style={{backgroundColor:'var(--card-bg)',border:'1px solid var(--border-color)'}}>
                             <h3 className="text-2xl font-bold text-gray-900 mb-6">Meet Your Instructor</h3>
 
                             <div className="flex flex-col md:flex-row gap-6">
@@ -288,7 +288,7 @@ const PublicCourseDetail = () => {
                         </div>
 
                         {/* Reviews */}
-                        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+                        <div className="rounded-3xl p-8 shadow-sm" style={{backgroundColor:'var(--card-bg)',border:'1px solid var(--border-color)'}}>
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="text-2xl font-bold text-gray-900">Student Reviews</h3>
                                 {reviewStats.totalRatings > 0 && (
@@ -308,7 +308,7 @@ const PublicCourseDetail = () => {
                             <div className="grid gap-6">
                                 {reviews.length > 0 ? (
                                     reviews.map(review => (
-                                        <div key={review.id} className="p-6 bg-gray-50 rounded-2xl">
+                                        <div key={review.id} className="p-6 rounded-2xl" style={{backgroundColor:'var(--bg-secondary)'}}>
                                             <div className="flex items-center gap-4 mb-4">
                                                 <img
                                                     src={review.student?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(review.student?.name || 'Student')}&background=8b5cf6&color=fff&size=64`}
@@ -348,7 +348,7 @@ const PublicCourseDetail = () => {
                     {/* Right Column: Sticky Pricing Card */}
                     <div className="lg:col-span-1">
                         <div className="sticky top-24">
-                            <div className="bg-white rounded-3xl p-6 shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden relative">
+                            <div className="rounded-3xl p-6 shadow-xl overflow-hidden relative" style={{backgroundColor:'var(--card-bg)',border:'1px solid var(--border-color)'}}>
                                 <img
                                     src={course.thumbnail}
                                     alt="thumbnail"
@@ -403,13 +403,16 @@ const ViewModule = ({ module, idx }) => {
     const [isOpen, setIsOpen] = React.useState(idx === 0);
 
     return (
-        <div className="border border-gray-200 rounded-2xl overflow-hidden transition-all">
+        <div className="rounded-2xl overflow-hidden transition-all" style={{border:'1px solid var(--border-color)'}}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center justify-between p-5 bg-gray-50/50 hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-between p-5 transition-colors"
+                style={{backgroundColor:'var(--bg-secondary)'}}
+                onMouseEnter={e => e.currentTarget.style.filter='brightness(1.05)'}
+                onMouseLeave={e => e.currentTarget.style.filter='brightness(1)'}
             >
                 <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 font-bold text-sm">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm" style={{backgroundColor:'var(--card-bg)',border:'1px solid var(--border-color)',color:'var(--text-secondary)'}}>
                         {idx + 1}
                     </div>
                     <div className="text-left">
@@ -421,12 +424,15 @@ const ViewModule = ({ module, idx }) => {
             </button>
 
             {isOpen && (
-                <div className="divide-y divide-gray-100 bg-white">
+                <div style={{backgroundColor:'var(--card-bg)',borderTop:'1px solid var(--border-color)'}}>
                     {module.lessons.map((lesson, i) => (
                         <div
                             key={i}
                             onClick={() => { if (lesson.isFree && course.youtubeUrl) setPreviewOpen(true); }}
-                            className={`p-4 flex items-center justify-between hover:bg-gray-50 transition-colors group ${lesson.isFree && course.youtubeUrl ? 'cursor-pointer' : 'cursor-default'}`}
+                            className={`p-4 flex items-center justify-between transition-colors group ${lesson.isFree && course.youtubeUrl ? 'cursor-pointer' : 'cursor-default'}`}
+                            style={{borderTop:'1px solid var(--border-color)'}}
+                            onMouseEnter={e => e.currentTarget.style.backgroundColor='var(--bg-secondary)'}
+                            onMouseLeave={e => e.currentTarget.style.backgroundColor='transparent'}
                         >
                             <div className="flex items-center gap-3">
                                 <PlayCircle size={16} className={`transition-colors ${lesson.isFree ? 'text-[#8b5cf6]' : 'text-gray-400 group-hover:text-[#8b5cf6]'}`} />

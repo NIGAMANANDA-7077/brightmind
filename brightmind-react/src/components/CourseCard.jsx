@@ -42,21 +42,9 @@ const CourseCard = ({ course }) => {
                     </div>
                 </div>
 
-                {/* Footer: Instructor & Price */}
+                {/* Footer: Price label + Price value */}
                 <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-100">
-                    {/* Instructor */}
-                    <div className="flex items-center gap-3">
-                        <img
-                            src={course.instructor.avatar}
-                            alt={course.instructor.name}
-                            className="w-10 h-10 rounded-full object-cover"
-                        />
-                        <span className="text-sm font-bold text-gray-700">
-                            {course.instructor.name}
-                        </span>
-                    </div>
-
-                    {/* Price */}
+                    <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Price</span>
                     <div className="font-bold text-xl text-gray-900 group-hover:text-[#8b5cf6] transition-colors">
                         ₹{course.price.toLocaleString('en-IN')}
                     </div>

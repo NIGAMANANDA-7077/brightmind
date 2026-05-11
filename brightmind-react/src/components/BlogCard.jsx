@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 const BlogCard = ({ post }) => {
     return (
         <Link to={`/blog/${post.slug}`} className="block h-full cursor-pointer relative z-10">
-            <div className="bg-white rounded-3xl p-4 overflow-hidden flex flex-col h-full hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-transparent hover:border-gray-50 group">
+            <div className="rounded-3xl p-4 overflow-hidden flex flex-col h-full hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-transparent hover:border-gray-50 group" style={{backgroundColor: 'var(--card-bg)'}}>
                 {/* Blog Image */}
                 <div className="relative h-56 rounded-2xl overflow-hidden mb-5">
                     <img

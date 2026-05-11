@@ -57,16 +57,16 @@ const ContactForm = () => {
     };
 
     return (
-        <div className="bg-white p-8 md:p-10 rounded-3xl shadow-lg border border-gray-100">
+        <div className="p-8 md:p-10 rounded-3xl shadow-lg" style={{backgroundColor:'var(--card-bg)', border:'1px solid var(--border-color)'}}>
             <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Send us a Message</h2>
+                <h2 className="text-2xl font-bold mb-2" style={{color:'var(--text-primary)'}}>Send us a Message</h2>
                 <p className="text-gray-500">Your email address will not be published. Required fields are marked *</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-900">Name *</label>
+                        <label className="text-sm font-semibold" style={{color:'var(--text-primary)'}}>Name *</label>
                         <input
                             type="text"
                             name="name"
@@ -74,11 +74,12 @@ const ContactForm = () => {
                             onChange={handleChange}
                             placeholder="Full Name"
                             required
-                            className="w-full px-4 py-3 rounded-xl bg-white border border-gray-100 focus:border-[#8b5cf6] focus:ring-2 focus:ring-[#8b5cf6]/20 outline-none transition-all text-black placeholder:text-gray-400"
+                            className="w-full px-4 py-3 rounded-xl border focus:border-[#8b5cf6] focus:ring-2 focus:ring-[#8b5cf6]/20 outline-none transition-all placeholder:text-gray-400"
+                            style={{backgroundColor:'var(--bg-secondary)', color:'var(--text-primary)', borderColor:'var(--border-color)'}}
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-900">Email *</label>
+                        <label className="text-sm font-semibold" style={{color:'var(--text-primary)'}}>Email *</label>
                         <input
                             type="email"
                             name="email"
@@ -86,7 +87,8 @@ const ContactForm = () => {
                             onChange={handleChange}
                             placeholder="Email Address (@gmail.com only)"
                             required
-                            className={`w-full px-4 py-3 rounded-xl bg-white border ${status.error && formData.email && !formData.email.endsWith('@gmail.com') ? 'border-red-500' : 'border-gray-100'} focus:border-[#8b5cf6] focus:ring-2 focus:ring-[#8b5cf6]/20 outline-none transition-all text-black placeholder:text-gray-400`}
+                            className={`w-full px-4 py-3 rounded-xl border ${status.error && formData.email && !formData.email.endsWith('@gmail.com') ? 'border-red-500' : ''} focus:border-[#8b5cf6] focus:ring-2 focus:ring-[#8b5cf6]/20 outline-none transition-all placeholder:text-gray-400`}
+                            style={{backgroundColor:'var(--bg-secondary)', color:'var(--text-primary)', borderColor: status.error && formData.email && !formData.email.endsWith('@gmail.com') ? undefined : 'var(--border-color)'}}
                         />
                     </div>
                 </div>
@@ -105,30 +107,32 @@ const ContactForm = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-900">Phone</label>
+                        <label className="text-sm font-semibold" style={{color:'var(--text-primary)'}}>Phone</label>
                         <input
                             type="tel"
                             name="phone"
                             value={formData.phone}
                             onChange={handleChange}
                             placeholder="Phone Number"
-                            className="w-full px-4 py-3 rounded-xl bg-white border border-gray-100 focus:border-[#8b5cf6] focus:ring-2 focus:ring-[#8b5cf6]/20 outline-none transition-all text-black placeholder:text-gray-400"
+                            className="w-full px-4 py-3 rounded-xl border focus:border-[#8b5cf6] focus:ring-2 focus:ring-[#8b5cf6]/20 outline-none transition-all placeholder:text-gray-400"
+                            style={{backgroundColor:'var(--bg-secondary)', color:'var(--text-primary)', borderColor:'var(--border-color)'}}
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-900">Date</label>
+                        <label className="text-sm font-semibold" style={{color:'var(--text-primary)'}}>Date</label>
                         <input
                             type="date"
                             name="date"
                             value={formData.date}
                             onChange={handleChange}
-                            className="w-full px-4 py-3 rounded-xl bg-white border border-gray-100 focus:border-[#8b5cf6] focus:ring-2 focus:ring-[#8b5cf6]/20 outline-none transition-all text-black"
+                            className="w-full px-4 py-3 rounded-xl border focus:border-[#8b5cf6] focus:ring-2 focus:ring-[#8b5cf6]/20 outline-none transition-all"
+                            style={{backgroundColor:'var(--bg-secondary)', color:'var(--text-primary)', borderColor:'var(--border-color)'}}
                         />
                     </div>
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-900">Message *</label>
+                        <label className="text-sm font-semibold" style={{color:'var(--text-primary)'}}>Message *</label>
                     <textarea
                         name="message"
                         value={formData.message}
@@ -136,7 +140,8 @@ const ContactForm = () => {
                         required
                         rows="6"
                         placeholder="Write your message here..."
-                        className="w-full px-4 py-3 rounded-xl bg-white border border-gray-100 focus:border-[#8b5cf6] focus:ring-2 focus:ring-[#8b5cf6]/20 outline-none transition-all text-black placeholder:text-gray-400 resize-none"
+                        className="w-full px-4 py-3 rounded-xl border focus:border-[#8b5cf6] focus:ring-2 focus:ring-[#8b5cf6]/20 outline-none transition-all placeholder:text-gray-400 resize-none"
+                        style={{backgroundColor:'var(--bg-secondary)', color:'var(--text-primary)', borderColor:'var(--border-color)'}}
                     ></textarea>
                 </div>
 

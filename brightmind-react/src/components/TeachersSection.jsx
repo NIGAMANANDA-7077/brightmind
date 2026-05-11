@@ -39,7 +39,7 @@ const TeachersSection = () => {
   const displayTeachers = teachers.length > 0 ? teachers : fallbackTeachers;
 
   return (
-    <section ref={ref} className={`relative pt-10 pb-20 bg-white overflow-hidden transition-all duration-1000 transform ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+    <section ref={ref} className={`relative pt-10 pb-20 overflow-hidden transition-all duration-1000 transform ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`} style={{backgroundColor:'var(--bg-primary)'}}>
       {loading ? (
         <div className="flex justify-center items-center min-h-[400px] w-full">
           <Loader2 className="animate-spin text-[#8b5cf6]" size={40} />
@@ -47,7 +47,7 @@ const TeachersSection = () => {
       ) : (
       <div className="container-custom relative z-10 px-4 md:px-6">
         <div className="text-center mb-12">
-          <h2 className="text-[2.2rem] md:text-[2.75rem] font-bold text-[#0f172a]">
+          <h2 className="text-[2.2rem] md:text-[2.75rem] font-bold" style={{color:'var(--text-primary)'}}>
             Meet Our Expert Team
           </h2>
         </div>
@@ -56,8 +56,8 @@ const TeachersSection = () => {
           {displayTeachers.map((teacher, index) => (
             <div 
               key={teacher.id} 
-              className="bg-white rounded-[1.5rem] shadow-[0_4px_24px_rgba(0,0,0,0.06)] hover:shadow-xl transition-shadow duration-300 flex flex-col"
-              style={{ transitionDelay: `${index * 50}ms` }}
+              className="rounded-[1.5rem] shadow-[0_4px_24px_rgba(0,0,0,0.06)] hover:shadow-xl transition-shadow duration-300 flex flex-col"
+              style={{ transitionDelay: `${index * 50}ms`, backgroundColor:'var(--card-bg)', border:'1px solid var(--border-color)' }}
             >
               {/* Image Section */}
               <div className="w-full h-64 sm:h-72 relative">
@@ -70,7 +70,7 @@ const TeachersSection = () => {
               
               {/* Content Section */}
               <div className="p-6 md:p-7 flex-1 flex flex-col">
-                <h3 className="text-xl font-bold text-[#0f172a] mb-1">{teacher.name}</h3>
+                <h3 className="text-xl font-bold mb-1" style={{color:'var(--text-primary)'}}>{teacher.name}</h3>
                 <p className="text-[0.95rem] font-medium text-[#8b5cf6] mb-5">
                   {teacher.subject || teacher.department || 'Expert Instructor'}
                 </p>
@@ -81,7 +81,7 @@ const TeachersSection = () => {
                     href={teacher.facebookUrl || "#"} 
                     target={teacher.facebookUrl ? "_blank" : "_self"} 
                     rel="noopener noreferrer" 
-                    className="text-[#94a3b8] hover:text-[#0f172a] transition-colors"
+                    className="text-[#94a3b8] transition-colors" style={{color:'#94a3b8'}}
                   >
                     <Facebook size={18} strokeWidth={2} />
                   </a>
@@ -89,7 +89,7 @@ const TeachersSection = () => {
                     href={teacher.twitterUrl || "#"} 
                     target={teacher.twitterUrl ? "_blank" : "_self"} 
                     rel="noopener noreferrer" 
-                    className="text-[#94a3b8] hover:text-[#0f172a] transition-colors"
+                    className="text-[#94a3b8] transition-colors" style={{color:'#94a3b8'}}
                   >
                     <Twitter size={18} strokeWidth={2} />
                   </a>
@@ -97,7 +97,7 @@ const TeachersSection = () => {
                     href={teacher.linkedinUrl || "#"} 
                     target={teacher.linkedinUrl ? "_blank" : "_self"} 
                     rel="noopener noreferrer" 
-                    className="text-[#94a3b8] hover:text-[#0f172a] transition-colors"
+                    className="text-[#94a3b8] transition-colors" style={{color:'#94a3b8'}}
                   >
                     <Linkedin size={18} strokeWidth={2} />
                   </a>

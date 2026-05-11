@@ -1,6 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
+import teammate1 from '../teammate 1.jpg';
+import teammate2 from '../teammate 2.png';
+import teammate3 from '../teammate 3.jpg';
+import teammate4 from '../teammate 4.png';
 
 
 
@@ -9,25 +13,25 @@ const CTASection = () => {
 
   const floatingImages = [
     {
-      src: "https://media.licdn.com/dms/image/v2/D5635AQEyj-iPH-dl9g/profile-framedphoto-shrink_400_400/B56ZXOnMt8HEAg-/0/1742928137410?e=1777665600&v=beta&t=SqyPCz-7YBYFVD97GSgm_SX-VzEx6h6GD9Nqc1UYh0g",
+      src: teammate1,
       shape: "rounded-xl rotate-[-12deg]",
       position: "top-[15%] left-[10%] md:left-[15%]",
       size: "w-16 h-16 md:w-20 md:h-20"
     },
     {
-      src: "https://media.licdn.com/dms/image/v2/D4D03AQHz9TBxQo8efA/profile-displayphoto-crop_800_800/B4DZg8IyasGsAI-/0/1753355595666?e=1777507200&v=beta&t=oAkCmFNn8LK79UJeirz7H29wh1_V9YiWn4EmFtq5tmw",
+      src: teammate2,
       shape: "shape-hexagon rotate-[12deg]",
       position: "top-[20%] right-[10%] md:right-[15%]",
       size: "w-16 h-16 md:w-20 md:h-20 "
     },
     {
-      src: "https://media.licdn.com/dms/image/v2/D4D03AQGj8yHrj68Bxw/profile-displayphoto-crop_800_800/B4DZpEDXYiKIAI-/0/1762078326282?e=1777507200&v=beta&t=JkOX4VclWf0TnerAXWfcj1EBnC6s-4W49bwsK6i5LME",
+      src: teammate3,
       shape: "shape-blob rotate-[-6deg]",
       position: "bottom-[20%] left-[15%] md:left-[20%]",
       size: "w-20 h-20 md:w-24 md:h-24"
     },
     {
-      src: "https://media.licdn.com/dms/image/v2/D5603AQFpu-RYoN4aCw/profile-displayphoto-shrink_800_800/B56ZYWJsNgGoAc-/0/1744128362613?e=1777507200&v=beta&t=KlOUvmq2MmeygRom_YK5aPBITb0U0R3Oh1-0OUDjD_U",
+      src: teammate4,
       shape: "rounded-full rotate-[12deg]",
       position: "bottom-[15%] right-[15%] md:right-[20%]",
       size: "w-16 h-16 md:w-20 md:h-20"

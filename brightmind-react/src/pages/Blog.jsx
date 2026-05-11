@@ -45,7 +45,7 @@ const Blog = () => {
     return (
         <div className="pt-20">
             {/* Page Header */}
-            <section className="py-20 bg-white text-center">
+            <section className="py-20 text-center" style={{backgroundColor: 'var(--bg-primary)'}}>
                 <div
                     ref={headerRef}
                     className={`container-custom transition-all duration-1000 ${headerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
@@ -61,7 +61,7 @@ const Blog = () => {
             </section>
 
             {/* Blogs Grid */}
-            <section className="pb-20 bg-[#fbfbfb] pt-12">
+            <section className="pb-20 pt-12" style={{backgroundColor: 'var(--bg-secondary)'}}>
                 <div className="container-custom">
                     {loading && posts.length === 0 ? (
                         <div className="flex justify-center items-center py-20">

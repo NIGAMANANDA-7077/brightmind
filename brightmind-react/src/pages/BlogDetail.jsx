@@ -125,8 +125,8 @@ const BlogDetail = () => {
                     {/* Sidebar */}
                     <div className="lg:col-span-4 space-y-8">
                         {/* Share Card - Sticky */}
-                        <div className="bg-white p-8 rounded-3xl shadow-lg border border-gray-100 sticky top-32">
-                            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                        <div className="p-8 rounded-3xl shadow-lg sticky top-32" style={{backgroundColor:'var(--card-bg)', border:'1px solid var(--border-color)'}}>
+                            <h3 className="text-xl font-bold mb-6 flex items-center gap-2" style={{color:'var(--text-primary)'}}>
                                 <Share2 className="w-5 h-5 text-[#8b5cf6]" />
                                 Share this article
                             </h3>
